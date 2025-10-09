@@ -1,0 +1,28 @@
+ai_stages:
+  - data_preparation
+  - modelling
+  - operationalization
+ai_operations:
+### Data preparation stage
+  - data_profiling
+  - data_validation
+  - data_preprocessing
+  - data_documentation
+### Modelling
+  - feature_engineering
+  - model_training
+  - model_evaluation
+  - model_validation
+  - model_aipc_documentation
+### Operationalisation
+  - model_deployment
+  - model_monitoring
+  - production_data_monitoring
+  - system_monitoring
+  - pre_inference_transformations
+  - post_inference_transformations
+
+
+
+
+
