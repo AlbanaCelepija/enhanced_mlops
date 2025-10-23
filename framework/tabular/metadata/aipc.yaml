@@ -2,6 +2,25 @@ domain: PA
 data_modality: tabular
 ai_task: classification
 operations:
+
+
+####################################################### Evaluate if AI product can be reused for new use case
+  - type: data_validation  
+    stage: data_preparation
+    id: data_drift_detection
+    name: Evaluate if target production data are drifted from training data 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: drift_detection
+        requirements: requirements.txt
+        inputs:
+          - configuration:         
+        outputs:
+          -   
+
 ####################################################### Data Preparation Stage
   - type: data_preprocessing  
     stage: data_preparation
