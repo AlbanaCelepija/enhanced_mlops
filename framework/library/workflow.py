@@ -4,6 +4,7 @@ from fairness.holisticAI.src.modelling import *
 from fairness.holisticAI.src.operationalization import *
 
 def main():
+    #global_config = 
     with open("fairness/holisticAI/metadata/aipc.yaml", "r") as yaml_file:
         aipc_configs = yaml.safe_load(yaml_file) 
         # operations
