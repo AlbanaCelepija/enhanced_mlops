@@ -2,7 +2,7 @@ import os
 import streamlit as st
 from streamlit_option_menu import option_menu
 
-def step_1(selected_aspect: str = "Baseline"):
+def step_1(current_step: str = "Data preparation", selected_aspect: str = "Baseline"):
     st.title("📊 Stage 1: Data preparation")
     option_menu(
             "Operations",
@@ -11,7 +11,7 @@ def step_1(selected_aspect: str = "Baseline"):
             default_index=0,
             orientation="horizontal"
         )
-    with st.expander("Operation name 1"):
+    with st.expander("Operation name 1", expanded=True):
         tab1, tab2, tab3 = st.tabs(["Documentation", "Code", "Metadata"])
         with tab1:
             st.write("This is the Documentation tab")
@@ -32,34 +32,53 @@ def step_1(selected_aspect: str = "Baseline"):
             st.write("This is the Metadata tab")
         
     
-def step_2(selected_aspect: str = "Baseline"):
-    st.title("Stage 2: Modeling")
-    rows = ["Model A", "Model B"]
-    column_labels = ["Accuracy", "Precision", "Recall", "Latency"]
-
-    for row in rows:
-        with st.expander(f"{row} Details"):
+def step_2(current_step: str = "Modeling", selected_aspect: str = "Baseline"):
+    st.title("🛠️ Stage 2: Modeling")
+    option_menu(
+            "Operations",
+            ["Feature Engineering", "Model training", "Model evaluation", "Model validation", "Model and product documentation"],
+            menu_icon="sliders",
+            default_index=0,
+            orientation="horizontal"
+    )
+    with st.expander("Operation name 1", expanded=True):
+        tab1, tab2, tab3 = st.tabs(["Documentation", "Code", "Metadata"])
+        with tab1:
+            st.write("This is the Documentation tab")
+            code = st.text_area("Documentation")
+        with tab2:
+            st.write("This is the Code tab")
+            code = st.text_area("Code implementation")
+        with tab3:
+            st.write("This is the Metadata tab")
+            schema = st.text_input("Schema")
+            column_labels = ["Accuracy", "Precision", "Recall", "Latency"]
             cols = st.columns(len(column_labels))
             for i, col in enumerate(cols):
                 with col:
                     st.metric(label=column_labels[i], value=f"{80 + i}%")
-                    st.button(f"Show {column_labels[i]}", key=f"{row}_{i}")
-    schema = st.text_input("Schema")
-    table = st.text_input("Table Name")
-    
-    return schema, table
+                    st.button(f"Show {column_labels[i]}", key=f"{i}")
 
-def step_3(selected_aspect: str = "Baseline"):
+def step_3(current_step: str = "Operationalization", selected_aspect: str = "Baseline"):
     st.title("⚙️ Stage 3: Operationalization")    
     option_menu(
-            "AI lifecycle stages",
-            ["Data preparation", "Modeling", "Operationalisation"],
-            icons=["graph-up", "tools", "speedometer2"],
+            "Operations",
+            ["Model deployment", "Model monitoring", "Production data monitoring", 
+             "System monitoring", "Pre-inference transformations", "Post-inference transformations"],
             menu_icon="sliders",
             default_index=0,
             orientation="horizontal"
-        )
-    
+        )  
+    with st.expander("Operation name 1", expanded=True):
+        tab1, tab2, tab3 = st.tabs(["Documentation", "Code", "Metadata"])
+        with tab1:
+            st.write("This is the Documentation tab")
+            code = st.text_area("Documentation")
+        with tab2:
+            st.write("This is the Code tab")
+            code = st.text_area("Code implementation")
+        with tab3:
+            st.write("This is the Metadata tab")  
     #csv_file = st.file_uploader("Choose ")
 
 
@@ -85,21 +104,14 @@ def main():
             default_index=0,
             orientation="vertical"
         )
-    if selected_aspect == "Baseline":
-        st.write("📊 Overview content")
-    elif selected_aspect == "Fairness":
-        st.write("📄 Details content")
-    elif selected_aspect == "Robustness":
-        st.write("⚙️ Settings content")
-        
     if current_step == "Data preparation":
-        step_1(selected_aspect)     
+        step_1(current_step, selected_aspect)     
     
     elif current_step == "Modeling":
-        step_2(selected_aspect)
+        step_2(current_step, selected_aspect)
         
     elif current_step == "Operationalisation":
-        step_3(selected_aspect)
+        step_3(current_step, selected_aspect)
     
     
 
