@@ -1,0 +1,9 @@
+pipelines:
+  - name: train_robustness_unaware
+    operations:
+      - id: data_preprocessing_step1
+      - id: model_train
+  - name: train_robustness_aware
+    operations:
+      - id: data_preprocessing_robustness
+      - id: model_train_robustness

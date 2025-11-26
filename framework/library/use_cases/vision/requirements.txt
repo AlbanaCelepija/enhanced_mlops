@@ -1,0 +1,10 @@
+########### Data Preparation stage
+evidently
+
+
+########### Modeling stage
+yolo
+
+########### Operationalisation Stage
+fastapi
+

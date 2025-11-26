@@ -1,0 +1,16 @@
+########### Data Preparation stage
+evidently
+
+
+########### Modeling stage
+torch
+unsloth
+transformers[torch]
+accelerate>=0.26.0
+evaluate
+
+########### Operationalisation Stage
+fastapi
+guardrails-ai
+digitalhub
+
