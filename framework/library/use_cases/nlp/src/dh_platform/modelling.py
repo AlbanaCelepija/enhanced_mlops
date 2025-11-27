@@ -12,7 +12,7 @@ from transformers import (
     TrainingArguments,
     Trainer,
     GPT4LMHeadModel,
-    GPT4Tokenizer
+    GPT4Tokenizer,
 )
 
 ################################################################ Training model / Fine-tuning
