@@ -1,9 +1,0 @@
-pipelines:
-  - name: train_fairness_unaware
-    operations:
-      - id: data_preprocessing_step1
-      - id: model_train
-  - name: train_fairness_aware
-    operations:
-      - id: data_preprocessing_reweighing
-      - id: model_train_reweighing
