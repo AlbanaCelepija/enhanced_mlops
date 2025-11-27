@@ -82,7 +82,7 @@ class Status:
     def change_status(self, new_status):
         self.status_key = status_key
         value = open(self.status_file, "r")
-        data = eval(value)      
+        data = eval(value)
 
         data[self.status_key] = new_status
         with open(self.status_file, "w") as file:

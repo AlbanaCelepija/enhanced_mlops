@@ -12,13 +12,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 class Message(BaseModel):
     message: str
     usecase: str
-    
+
+
 @app.post("/run_operation")
-def run_operation(operation_id: str="is_prod_reusable", params: Message):
-    pass
+def run_operation(operation_id: str = "is_prod_reusable", params: Message = "nlp"):
+    return "OK!"
 
 
 if __name__ == "__main__":

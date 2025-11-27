@@ -1,10 +1,11 @@
 import os
-#import yaml
+import yaml
 import streamlit as st
 from streamlit_option_menu import option_menu
 
 USE_CASES_FOLDER = "../framework/library/use_cases"
 use_cases_list = os.listdir(USE_CASES_FOLDER)
+platform_list = ["local", "dh"]
     
 def step_1(current_step: str = "Data preparation", selected_aspect: str = "Baseline", aipc_config_path: str = "aipc.yaml"):
     st.title("📊 Stage 1: Data preparation")
@@ -15,8 +16,8 @@ def step_1(current_step: str = "Data preparation", selected_aspect: str = "Basel
             default_index=0,
             orientation="horizontal"
         )
-    #with open(aipc_config_path, "r") as yaml_file:
-    #    aipc_configs = yaml.safe_load(yaml_file)
+    with open(aipc_config_path, "r") as yaml_file:
+        aipc_configs = yaml.safe_load(yaml_file)
     
     with st.expander("Operation name 1", expanded=True):
         tab1, tab2, tab3 = st.tabs(["Documentation", "Code", "Metadata"])
@@ -32,6 +33,7 @@ def step_1(current_step: str = "Data preparation", selected_aspect: str = "Basel
             
         if st.button("Run operation", key="run_op_1"):
             st.write("Running operation procedure...")
+            
             
     with st.expander("Operation name 2"):
         tab1, tab2, tab3 = st.tabs(["Documentation", "Code", "Metadata"])
@@ -99,14 +101,26 @@ def step_3(current_step: str = "Operationalization", selected_aspect: str = "Bas
             st.write("This is the Metadata tab")  
     #csv_file = st.file_uploader("Choose ")
 
+def session_state_test():
+    st.title('Counter Example')
+    if 'count' not in st.session_state:
+        st.session_state.count = 0
+
+    increment = st.button('Increment')
+    if increment:
+        st.session_state.count += 1
+
+    st.write('Count = ', st.session_state.count)
 
 def main():      
     st.set_page_config(layout="wide")
     st.sidebar.title("AI product development lifecycle")   
     if st.sidebar.button("Start new AI product", key="new_ai_product"):
         pass #st.sidebar.write("Creating new AI product project ...") 
+    current_frameowrk = st.sidebar.selectbox("Platform", use_cases_list)  
     current_product = st.sidebar.selectbox("AI Products list", use_cases_list)    
     st.write(os.path.join(USE_CASES_FOLDER, current_product, "src", "data_preparation.py")) 
+    #session_state_test()
          
     with st.sidebar:
         current_step = option_menu(
