@@ -64,26 +64,32 @@ Before running any command, inside the `framework` directory, you have to set up
    ```bash
    cp .env.example .env
    ```
-2. Open `.env` and configure the required credentials following the inline comments and the recommendations from the [Cloud Services](#-prerequisites) section.
+
 
 # 📁 Project Structure
 
 The project follows a clean architecture structure commonly used in production Python projects:
 
 ```bash
-philoagents-api/
-    ├── data/                  # Data files
-    ├── notebooks/             # Notebooks
-    ├── src/philoagents/       # Main package directory
-    │   ├── application/       # Application layer
-    │   ├── domain/            # Domain layer
-    │   ├── infrastructure/    # Infrastructure layer
-    │   └── config.py          # Configuration settings
-    ├── tools/                 # Entrypoint scripts that use the Python package
-    ├── .env.example           # Environment variables template
-    ├── .python-version        # Python version specification
-    ├── Dockerfile             # API Docker image definition
-    ├── Makefile               # Project commands
-    └── pyproject.toml         # Project dependencies
+├── framework
+│   ├── INSTALL_AND_USAGE.md
+│   ├── library                 # the main library folder
+│   │   ├── api                 # api implementation
+│   │   ├── config              # global definitions of the framework
+│   │   ├── src                 # contains the main entities definition (data, artifacts, reports)
+│   │   └── use_cases           # a list of AI products 
+│   ├── LICENSE.txt
+│   ├── Makefile                # Project commands           
+│   ├── pyproject.toml          # Project dependencies
+│   ├── README.md
+│   └── uv.lock
+├── guided_ui
+│   ├── app.py
+│   ├── Notes.md
+│   └── README.md
+├── README.md
+├── requirements.txt
+├── static
+└── tools_catalog
 ```
 
