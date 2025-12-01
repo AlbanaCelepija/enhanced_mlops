@@ -1,6 +1,6 @@
 # Enhanced MLOps Framework
 
-Check the [INSTALL_AND_USAGE.md](../INSTALL_AND_USAGE.md) file for instructions on how to install and use the framework.
+Check the [INSTALL_AND_USAGE.md](INSTALL_AND_USAGE.md) file for instructions on how to install and use the framework.
 
 # 🔧 Utlity Commands
 
