@@ -70,3 +70,14 @@ def drift_detection(current_data, ref_data):
 
     except Exception as e:
         main_logger.error(f"error during detection test: {e}")
+
+
+def data_augmentation():
+    """
+    TODO: 
+    Occlusion (random erasing)
+    Single image (scaling, cropping, flipping, rotating/ brightness, sontrast)
+    Multiple images (mixup, cutmix, mosaic)
+    
+    """
+    pass

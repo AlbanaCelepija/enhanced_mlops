@@ -1,19 +1,13 @@
-# framework
+# Enhanced MLOps Framework
 
-[![PyPI - Version](https://img.shields.io/pypi/v/framework.svg)](https://pypi.org/project/framework)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/framework.svg)](https://pypi.org/project/framework)
+Check the [INSTALL_AND_USAGE.md](../INSTALL_AND_USAGE.md) file for instructions on how to install and use the framework.
 
------
+# 🔧 Utlity Commands
 
-## Table of Contents
+## Formatting
 
-- [Installation](#installation)
-- [License](#license)
-
-## Installation
-
-```console
-pip install framework
+```
+make format
 ```
 
 ## License

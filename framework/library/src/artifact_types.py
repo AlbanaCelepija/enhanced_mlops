@@ -1,3 +1,4 @@
+import os
 import yaml
 import json
 import pandas as pd
@@ -32,7 +33,7 @@ class Report:
         self.load_report()
 
     def load_report(self):
-        if file_exists(self.filepath):
+        if os.path.isfile(self.filepath):
             if self.filetype == "csv":
                 return pd.read_csv(self.filepath)
             elif self.filetype == "json":

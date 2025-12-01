@@ -1,2 +1,8 @@
+### UI
 streamlit_option_menu
 streamlit
+
+
+## library
+uvicorn
+fastapi
