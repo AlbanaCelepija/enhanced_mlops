@@ -6,6 +6,8 @@ from datasets import load_dataset
 from artifact_types import Data, Configuration, Report
 from sklearn.model_selection import train_test_split
 
+from transformers import AutoTokenizer
+
 """ 
 Data preparation stage containing 4 operations
 Data Profiling
@@ -13,21 +15,53 @@ Data Validation
 Data Preprocessing
 Data Documentation
 """
+################################################## Data Preprocessing
 
+def tokenize_function(data, config):   
+    tokenizer_model = config.tokenizer_model
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_model)
+    return tokenizer(
+        data["text"], 
+        padding="max_length",
+        truncation=True,
+        max_length=128
+    )
+    tokenized_dataset = raw_datasets.map(tokenize_function, batched=True)  
+    return tokenized_dataset  
 
-def load_data():
-    raw_datasets = load_dataset("imdb")
-    return raw_datasets
+def load_data(data: Data, config: Configuration) -> Data:
+    raw_dataset = load_dataset("imdb")
+    dataset = tokenize_function(raw_datasets, config)
+    
+    output_data = Data()
+    return dataset
 
+################################################## Data Validation and Quality assurance
 
-################################################## Data Validation
+def check_common_issues(data):
+    common_issues = {
+        'special_chars': data["text"].str.contains(r'[^a-zA-Z0-9\s]', regex=True),
+        'numbers': data['text'].str.contains(r'\d'),
+        'all_caps': data['text'].str.isupper()
+    }
+    for issue, mask in common_issues.items():
+        data[issue] = mask.sum()
+    return None # TODO Status
 
+def data_quality_report():
+    #The data quality report looks at the descriptive statistics and helps visualize relationships in the data. Unlike the data drift report, 
+    #the data quality report can also work for a single dataset.
+    
+    #You can use it however you like. For example, you can generate and log the data quality snapshot for each model run and save it for future evaluation. 
+    #You can also build a conditional workflow around it: maybe generate an alert or a visual report, 
+    #for example, if you get a high number of new categorical values for a given feature.
+    
 
 def validate_cleaned_data():
     pass
 
 
-def drift_detection(current_data, ref_data):
+def data_drift_detection(current_data, ref_data):
     import datetime
     import json
     import pandas as pd

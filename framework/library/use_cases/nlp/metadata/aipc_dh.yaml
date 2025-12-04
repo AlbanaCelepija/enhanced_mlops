@@ -1,14 +1,14 @@
 domain: PA
 data_modality: text
 ai_task: text_generation
-framework: local
+framework: dh
 operations:
 
 
-####################################################### Evaluate if AI product can be reused for a new use case
+####################################################### Evaluate if AI product can be reused for new use case
   - type: data_validation  
     stage: data_preparation
-    id: data_drift_detection
+    id: is_prod_reusable
     name: Evaluate whether the target production data have drifted from the training data.
     requirement_dimension: baseline
     implementation: 
@@ -36,7 +36,6 @@ operations:
         method_name: load_data
         requirements: requirements.txt
         inputs:
-          - data: 
           - configuration: output_file        
         outputs:
           - data: data_processed 
@@ -61,7 +60,7 @@ operations:
   - type: model_training
     stage: modelling
     id: model_train
-    name: Model Training baseline
+    name: Model Training without fairness awareness
     requirement_dimension: baseline
     implementation: 
       framework: local
@@ -71,26 +70,26 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_processed
-          - configuration: model_train_baseline
+          - configuration: model_train_fairness_unaware
         outputs:
-          - model: model_baseline
+          - model: model_fairness_unaware
 
-  - type: model_training
+  - type: model_evaluation
     stage: modelling
-    id: model_train_unsloth
-    name: Model fraining faster
-    requirement_dimension: optimization
+    id: model_train
+    name: Model evaluation - perplexity
+    requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: optimised_training
+        method_name: train_model
         requirements: requirements.txt
         inputs:
-          - data: tokenised_data
-          - configuration: model_train_optimised
+          - data: hiring_data_processed
+          - configuration: model_train_fairness_unaware
         outputs:
-          - model: model_unsloth      
+          - model: model_fairness_unaware
 
 ####################################################### Operationalization Stage
 

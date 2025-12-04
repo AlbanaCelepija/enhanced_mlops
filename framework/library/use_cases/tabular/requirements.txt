@@ -4,6 +4,7 @@ lightgbm
 fairlearn
 xlrd
 seaborn
+scikit-learn
 sklearn-compat==0.1.3
 scikit-learn==1.6.1
 lightgbm==3.3.0
@@ -25,6 +26,7 @@ lime
 
 # for AI documentation
 model-card-toolkit
+# pip install model-card-toolkit --use-deprecated=legacy-resolver
 
 # for deployment
 kserve==0.15.2
