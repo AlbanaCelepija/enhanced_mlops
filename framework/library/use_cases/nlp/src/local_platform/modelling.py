@@ -11,7 +11,7 @@ from transformers import (
     TrainingArguments,
     Trainer,
 )
-
+from trl import SFTTrainer, SFTConfig
 from unsloth import FastLanguageModel
 
 
@@ -51,7 +51,7 @@ def train_model(data: Data, config: Configuration):
 
 
 
-def optimised_training():
+def optimised_training(dataset: Data, config: Configuration):
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name = 'unsloth/Phi-3-mini-4k-instruct-bnb-4bit',
         max_seq_length = 2048,
@@ -88,6 +88,7 @@ def optimised_training():
         ),
     )
     trainer.train()
+    model.save_pretrained_merged("finetuned_model", tokenizer, save_method = "lora")
     
     
 

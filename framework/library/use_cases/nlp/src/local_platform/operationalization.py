@@ -8,6 +8,8 @@ from evidently.report import Report
 from evidently.metrics import *
 from evidently.metric_preset import DataDriftPreset, TargetDriftPreset
 
+from unsloth import FastLanguageModel
+
 ################################################################################ Model deployment
 
 
@@ -18,7 +20,27 @@ def model_deployment(config: Configuration):
 
 
 ################################################################################ Model monitoring
-# experiments tracking: efficient
+
+def inference_service():
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name = 'finetuned_model',
+        max_seq_length = 2048,
+        dtype = None,
+        load_in_4bit = True
+    )
+    FastLanguageModel.for_inference(model)
+    messages = [
+        {
+            "role": "user",
+            "content": "Mike is 30 years old, loves hiking and works as a coder."
+        },
+    ]
+    # Turn messages to tensor and send to GPU
+    inputs = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_tensors="pt").to("cuda")
+    # Generate model response with max 512 tokens and 0.7 temperature, smallest set of tokens with cumulative probability of >= 0.9 are kept for random sampling
+    outputs = model.generate(input_ids=inputs, max_new_tokens=512, use_cache=True, temperature=0.7, do_sample=True, top_p=0.9)
+    response = tokenizer.batch_decode(outputs)[0]
+    return response
 
 
 def model_monitoring():

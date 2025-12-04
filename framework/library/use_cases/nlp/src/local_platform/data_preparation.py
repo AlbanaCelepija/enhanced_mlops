@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
 
 """ 
-Data preparation stage containing 4 operations
+Data preparation stage containing 4 operations:
 Data Profiling
 Data Validation
 Data Preprocessing
@@ -31,7 +31,7 @@ def tokenize_function(data, config):
 
 def load_data(data: Data, config: Configuration) -> Data:
     raw_dataset = load_dataset("imdb")
-    dataset = tokenize_function(raw_datasets, config)
+    dataset = tokenize_function(raw_dataset, config)
     
     output_data = Data()
     return dataset
@@ -55,6 +55,7 @@ def data_quality_report():
     #You can use it however you like. For example, you can generate and log the data quality snapshot for each model run and save it for future evaluation. 
     #You can also build a conditional workflow around it: maybe generate an alert or a visual report, 
     #for example, if you get a high number of new categorical values for a given feature.
+    pass
     
 
 def validate_cleaned_data():
