@@ -20,7 +20,7 @@ operations:
         inputs:
           - configuration:  constraints_file    # range of values, thresholds    
         outputs:
-          -   
+          - report: data_report
 
   - type: data_validation  
     stage: data_preparation
@@ -72,7 +72,8 @@ operations:
         outputs:
           - data: hiring_data_reweighed 
 
-####################################################### Modelling Stage
+######################################################### Modelling Stage
+
   - type: model_training
     stage: modelling
     id: model_train

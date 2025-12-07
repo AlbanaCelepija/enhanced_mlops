@@ -14,7 +14,7 @@ operations:
     implementation: 
       framework: local
       spec:
-        path: data_preparation.py
+        path: src/local_platform/data_preparation.py
         method_name: target_data_drift_detection
         requirements: requirements.txt
         inputs:
@@ -32,7 +32,7 @@ operations:
     implementation: 
       framework: local
       spec:
-        path: data_preparation.py
+        path: src/local_platform/data_preparation.py
         method_name: load_data
         requirements: requirements.txt
         inputs:
@@ -49,7 +49,7 @@ operations:
     implementation: 
       framework: local
       spec:
-        path: data_preparation.py
+        path: src/local_platform/data_preparation.py
         method_name: drift_detection
         requirements: requirements.txt
         inputs:

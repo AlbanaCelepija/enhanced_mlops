@@ -18,34 +18,6 @@ from holisticai.bias.metrics import (
 )
 from holisticai.bias.mitigation import EqualizedOdds
 
-"""
-class CustomModel(Model):
-    def __init__(self, name: str, model_path: str):
-        super().__init__(name)
-        self.model_path = model_path
-        self.model = None
-
-    # load joblib model artiact
-    def load_joblib(self):
-        # Load the model from the specified directory
-        self.model = joblib.load(self.model_path)
-        print(f"Model loaded from {self.model_path}")
-        return self
-
-    def load(self):
-        # Load the model from the specified directory
-        with open(self.model_path, "rb") as model_file:
-            self.model = pickle.load(self.model_path)
-        print(f"Model loaded from {self.model_path}")
-        return self
-    
-    def predict(self, inputs: dict) -> dict:
-        # Perform inference
-        data = np.array(inputs["instances"])
-        predictions = self.model.predict(data)
-        return {"predictions": predictions.tolist()}
-"""
-
 
 def model_deployment(config: Configuration):
     model_name = config.name

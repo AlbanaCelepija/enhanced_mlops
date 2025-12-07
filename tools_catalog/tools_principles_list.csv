@@ -10,5 +10,5 @@ aix360,explainability,https://github.com/Trusted-AI/AIX360,,all,,IBM,,,,,
 lime,explainability,https://github.com/marcotcr/lime,,all,,lime,,,,,
 adversarial-robustness-toolbox,robustness,https://github.com/Trusted-AI/adversarial-robustness-toolbox?tab=readme-ov-file,,all,,IBM,,,,,
 aequitas,fairness,https://github.com/dssg/aequitas,,all,,aequitas,,,,,
-evidently,"quality, robustness",https://github.com/evidentlyai/evidently,,"tabular, text, embeddings",,evidently.ai,code_snippets/evidently.py,data_validation,,,Can you generate a report about the level of data drift for the given reference and target data?
+evidently,"baseline, robustness",https://github.com/evidentlyai/evidently,,"tabular, text, embeddings",,evidently.ai,code_snippets/evidently.py,data_validation,,,Can you generate a report about the level of data drift for the given reference and target data?
 alibi-detect,robustness,https://github.com/SeldonIO/alibi-detect,,all,,SeldonIO,,,,,

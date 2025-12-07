@@ -20,7 +20,17 @@ from fairlearn.reductions import ExponentiatedGradient, EqualizedOdds, TruePosit
 
 ################################# fairlearn post-processing example #################################
 
-def post_inference_transformations_threshold(data_inference: Data, data_postinference: Data, estimator: Model):  
+def post_inference_transformations_threshold_EO(data_inference: Data, data_postinference: Data, estimator: Model):  
+     
+    postprocess_est = ThresholdOptimizer(
+        estimator=estimator,
+        constraints="equalized_odds",  # Optimize FPR and FNR simultaneously
+        objective="balanced_accuracy_score",
+        prefit=True,
+        predict_method="predict_proba",
+    )
+
+def post_inference_transformations_threshold_EO(data_inference: Data, data_postinference: Data, estimator: Model):  
      
     postprocess_est = ThresholdOptimizer(
         estimator=estimator,
