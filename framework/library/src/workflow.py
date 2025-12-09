@@ -104,7 +104,7 @@ def run_modelling_operations(
                 input_vars.update({"config": Configuration(**artifact_vars)})
             # model artifacts
             input_artifact = [
-                art for art in config_artifacts if art["name"] == input_name[0]
+                art for art in model_artifacts if art["name"] == input_name[0]
             ]
             if len(input_artifact) > 0:
                 artifact_vars = {
@@ -112,7 +112,7 @@ def run_modelling_operations(
                     for var_name, var_value in input_artifact[0].items()
                     if var_name != "name"
                 }
-                input_vars.update({"config": Configuration(**artifact_vars)})
+                input_vars.update({"model": Configuration(**artifact_vars)})
 
         print(input_vars)
 
@@ -157,7 +157,7 @@ def run_operationalisations(
                 input_vars.update({"config": Configuration(**artifact_vars)})
             # model artifacts
             input_artifact = [
-                art for art in config_artifacts if art["name"] == input_name[0]
+                art for art in model_artifacts if art["name"] == input_name[0]
             ]
             if len(input_artifact) > 0:
                 artifact_vars = {
@@ -165,7 +165,7 @@ def run_operationalisations(
                     for var_name, var_value in input_artifact[0].items()
                     if var_name != "name"
                 }
-                input_vars.update({"config": Model(**artifact_vars)})
+                input_vars.update({"model": Model(**artifact_vars)})
 
         print(input_vars)
 

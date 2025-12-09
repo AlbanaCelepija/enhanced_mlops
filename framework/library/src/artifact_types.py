@@ -9,13 +9,19 @@ class Data:
     The primary artifact fed into the training algorithm to fit the best model
     """
 
-    def __init__(self, filepath=None, dataset=None):
+    def __init__(self, filepath=None, dataset_name=None):
         self.filepath = filepath
-        self.dataset = dataset
+        self.dataset_name = dataset_name
+        self.filetype = filepath.split(".")[1]
         self.load_dataset()
 
     def load_dataset(self):
-        self.dataset = pd.read_parquet(self.filepath)
+        if self.filetype == "csv":
+            self.dataset = pd.read_csv(self.filepath)
+        elif self.filetype == "json":
+            self.dataset = pd.read_json(self.filepath)
+        else:
+            self.dataset = pd.read_parquet(self.filepath)
         return self.dataset
 
     def get_dataset(self):

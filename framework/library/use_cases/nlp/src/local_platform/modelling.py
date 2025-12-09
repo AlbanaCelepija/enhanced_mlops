@@ -1,7 +1,7 @@
 import torch
 import mlflow
 from pickle import dump
-from artifact_types import Data, Configuration, Report, Model
+from library.src.artifact_types import Data, Configuration, Report, Model
 import numpy as np
 import evaluate
 from datasets import load_dataset
