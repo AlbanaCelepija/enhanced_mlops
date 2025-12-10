@@ -11,48 +11,111 @@ ai_operations:
             -Data
           output: 
             -Report
+          desc: "Generate reports with specific characteristics of training data"
       - data_validation:
           input: 
             - Data
             - Configuration
           output: 
             - Status
+          desc: "Validate the quality of training data to identify issues that could impact model performance"
       - data_preprocessing:
           input:
             - Data
           output:
             - Data
+          desc: "Apply data cleaning procedure, data augmentation, type conversion, analyze data distribution, evaluate bias or discrimination issues on data"
       - data_documentation:
           input:
             - Data
           output:
             - Documentation
+          desc: "Generate human readable documentation in order to facilitate knowledge transfer and increase transparency"
 ### Modelling
   - stage: modelling
     operations:
-      - feature_engineering
+      - feature_engineering:
           input: 
             - Data
           output: 
             - Data
             - Report
-      - model_training
+          desc: "Apply principal components analysis, understand feature importance"
+      - model_training:
           input:
             - Data
-      - model_evaluation
-      - model_validation
-      - model_aipc_documentation
+            - Configuration
+          output:
+            - Function
+          desc: "Training procedure that fits the model to the training data, or fine-tune a pre-trained model"
+      - model_evaluation:
+          input:
+            - Data
+            - Configuration
+            - Model
+          output:
+            - Report
+          desc: "Apply evaluation strategies to identify and understand the quality and performance of the model"
+      - model_validation:
+          input:
+            - Report
+            - Configuration
+          output:
+            - Status
+          desc: "Validate the quality of the model to decide if the model can be deployed"
+      - model_documentation: 
+          input:
+            - Report
+          output:
+            - Documentation
+          desc: "Generate human readable documentation in order to facilitate knowledge transfer and increase transparency"
 ### Operationalisation
   - stage: operationalization
     operations:
-      - model_deployment
-      - model_monitoring
-      - production_data_monitoring
-      - system_monitoring
+      - model_deployment:
+          input:
+            - Function
+            - Configuration
+          output:
+            - Service
+          desc: "Serve model outputs to the end users. It acts as a wrapper to the model artifacts and relevant parameters"
+      - model_monitoring:
+          input:
+            - Service
+            - Data
+          output:
+            - Logs
+          desc: "Implement a function to deliver model outputs to the end users. It wraps the model artifacts and relevant parameters"
+      - production_data_monitoring:
+          input:
+            - Data
+          output:
+            - Reports
+          desc: "Procedure that monitors production data and computes metrics based on data characteristics"
+      - system_monitoring:
+          input:
+            - Logs
+          output:
+            - Reports
+          desc: "This implements application-level monitoring of the deployed service itself, such as a Flask web service or Kubernetes-hosted service."
       # guardrails
-      - pre_inference_transformations
-      - post_inference_transformations
-
+      - pre_inference_transformations:
+          input:
+            - Data
+          output:
+            - Data
+          desc: "Adjustments made to production data prior to feeding it into the model"
+      - post_inference_transformations:
+          input:
+            - Data
+          output:
+            - Data
+          desc: "Adjustments made to the models output to prevent data privacy breaches or to filter information"
+requirements_dimensions:
+  - baseline
+  - fairness
+  - robustness
+  - optimization
 
 
 
