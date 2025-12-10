@@ -1,14 +1,14 @@
 import os
 from pickle import dump
 
-#import holisticai
-#from holisticai.bias.metrics import (
+# import holisticai
+# from holisticai.bias.metrics import (
 #    disparate_impact,
 #    statistical_parity,
 #    average_odds_diff,
-#)
-#from interpret.blackbox import LimeTabular
-#from interpret import show
+# )
+# from interpret.blackbox import LimeTabular
+# from interpret import show
 
 from library.src.artifact_types import Data, Configuration, Report, Model
 
@@ -24,23 +24,81 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-#import mlflow
-#import mlflow.sklearn
+# import mlflow
+# import mlflow.sklearn
 
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 MODEL_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "model")
+
+#################################################### Feature Engineering
+
+
+def permutation_feature_importance(data_test: Data, model: Model):
+    # Function to permute a specific feature column in the dataset
+    def permute_X(X, j):
+        Xj = X.copy()
+        Xj[j] = Xj[j].sample(frac=1).values  # Shuffle feature values
+        return Xj
+
+    X_test = data_test.get_dataset()
+    # Define parameters
+    np.random.seed(10)
+    n_features = len(X_test.columns)
+    n_iter = 10
+
+    # Initialize arrays to store accuracy and disparate impact results
+    accs = np.zeros((n_iter, n_features))
+    dis = np.zeros((n_iter, n_features))
+
+    # Iterate over features and perform permutation testing
+    for j in tqdm(range(n_features)):
+        for i in range(n_iter):
+            # Shuffle feature j and make predictions
+            X_test_permuted = permute_X(X_test, str(j))
+            y_pred_test_permuted = model.predict(X_test_permuted)
+
+            # Compute accuracy and disparate impact and store results
+            accs[i, j] = accuracy_score(y_test, y_pred_test_permuted)
+            dis[i, j] = disparate_impact(
+                group_a_test, group_b_test, y_pred_test_permuted
+            )
 
 
 def get_metrics_classifier(group_a, group_b, y_pred, y_true):
     """
     Returns a DataFrame of model accuracy and fairness metrics for two groups.
     """
-    metrics = [['Model Accuracy', round(accuracy_score(y_true, y_pred), 2), 1]]  # Calculate accuracy
-    metrics += [['Black vs. White Disparate Impact', round(disparate_impact(group_a, group_b, y_pred), 2), 1]]  # Calculate disparate impact
-    metrics += [['Black vs. White Statistical Parity', round(statistical_parity(group_a, group_b, y_pred), 2), 0]]  # Calculate statistical parity
-    metrics += [['Black vs. White Average Odds Difference', round(average_odds_diff(group_a, group_b, y_pred, y_true), 2), 0]]  # Calculate average odds difference
-    return pd.DataFrame(metrics, columns=['Metric', 'Value', 'Reference'])  # Return metrics as DataFrame
+    metrics = [
+        ["Model Accuracy", round(accuracy_score(y_true, y_pred), 2), 1]
+    ]  # Calculate accuracy
+    metrics += [
+        [
+            "Black vs. White Disparate Impact",
+            round(disparate_impact(group_a, group_b, y_pred), 2),
+            1,
+        ]
+    ]  # Calculate disparate impact
+    metrics += [
+        [
+            "Black vs. White Statistical Parity",
+            round(statistical_parity(group_a, group_b, y_pred), 2),
+            0,
+        ]
+    ]  # Calculate statistical parity
+    metrics += [
+        [
+            "Black vs. White Average Odds Difference",
+            round(average_odds_diff(group_a, group_b, y_pred, y_true), 2),
+            0,
+        ]
+    ]  # Calculate average odds difference
+    return pd.DataFrame(
+        metrics, columns=["Metric", "Value", "Reference"]
+    )  # Return metrics as DataFrame
+
+
+#################################################### Model Training ####################################################
 
 
 def train_model(data: Data, config: Configuration):

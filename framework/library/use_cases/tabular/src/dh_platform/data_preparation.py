@@ -18,6 +18,7 @@ Data Documentation
 
 ################################################################################################## Data Preprocessing
 
+
 def load_data_0(config: Configuration):
     gdown.download(config.url, config.original_filepath, quiet=False)
     # load data and remove all NaN values
@@ -33,25 +34,34 @@ def split_data_from_df(data):
     """
     Splits a DataFrame into features (X), labels (y), and demographic data (dem).
     """
-    filter_col = ['nationality', 'gender'] 
+    filter_col = ["nationality", "gender"]
     features = data.drop(columns=["Id", "decision"] + filter_col).columns
-    y = data['decision'].values  # Extract labels 
-    X = data[features].values  # Extract features 
-    dem = data[filter_col].copy()  # Extract demographics 
-    return X, y, dem  # Return features, labels, demographics 
+    y = data["decision"].values  # Extract labels
+    X = data[features].values  # Extract features
+    dem = data[filter_col].copy()  # Extract demographics
+    return X, y, dem  # Return features, labels, demographics
 
 
 def load_data(data: Data, config: Configuration):
-    boolean_features = ["ind-debateclub", "ind-programming_exp", "ind-international_exp", "ind-entrepeneur_exp", "ind-exact_study", "decision"]
+    boolean_features = [
+        "ind-debateclub",
+        "ind-programming_exp",
+        "ind-international_exp",
+        "ind-entrepeneur_exp",
+        "ind-exact_study",
+        "decision",
+    ]
     categorical_features = ["sport", "ind-degree", "company"]
     dataset = data.get_data()
     encoder = OneHotEncoder(sparse_output=False)
     encoded = encoder.fit_transform(data[categorical_features])
-    encoded_df = pd.DataFrame(encoded, columns=encoder.get_feature_names_out(categorical_features))
+    encoded_df = pd.DataFrame(
+        encoded, columns=encoder.get_feature_names_out(categorical_features)
+    )
     data = pd.concat([encoded_df, data.drop(columns=categorical_features)], axis=1)
     data[boolean_features] = data[boolean_features].astype(int)
-    
-    
+
+
 def resample_equal(df, cat):
     """Resamples the DataFrame to balance categories by oversampling based on a combined category-label identifier."""
     df["uid"] = df[cat] + df["Label"].astype(
@@ -107,8 +117,10 @@ def bias_mitigation_pre_reweighing(data: Data, config: Configuration) -> Data:
 
 
 def run_on_platform():
-    data_gen_fn = project.new_function(name="data-prep",
-                                    kind="python",
-                                    python_version="PYTHON3_10",
-                                    code_src="src/data-prep.py",
-                                    handler="data_generator")
+    data_gen_fn = project.new_function(
+        name="data-prep",
+        kind="python",
+        python_version="PYTHON3_10",
+        code_src="src/data-prep.py",
+        handler="data_generator",
+    )

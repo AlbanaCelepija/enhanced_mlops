@@ -4,11 +4,12 @@ import pickle
 import numpy as np
 import pandas as pd
 from library.src.artifact_types import Data, Configuration, Report
-#from holisticai.bias.mitigation import Reweighing
+
+# from holisticai.bias.mitigation import Reweighing
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 
-#import digitalhub as dh
+# import digitalhub as dh
 
 """ 
 Data preparation stage containing 4 operations
@@ -22,6 +23,7 @@ Data Documentation
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
+
 
 def load_data_0(config: Configuration):
     gdown.download(config.url, config.original_filepath, quiet=False)
@@ -38,28 +40,39 @@ def split_data_from_df(data):
     """
     Splits a DataFrame into features (X), labels (y), and demographic data (dem).
     """
-    filter_col = ['nationality', 'gender'] 
+    filter_col = ["nationality", "gender"]
     features = data.drop(columns=["Id", "decision"] + filter_col).columns
-    y = data['decision'].values  # Extract labels 
-    X = data[features].values  # Extract features 
-    dem = data[filter_col].copy()  # Extract demographics 
-    return X, y, dem  # Return features, labels, demographics 
+    y = data["decision"].values  # Extract labels
+    X = data[features].values  # Extract features
+    dem = data[filter_col].copy()  # Extract demographics
+    return X, y, dem  # Return features, labels, demographics
 
 
 def load_data(data: Data, config: Configuration):
-    boolean_features = ["ind-debateclub", "ind-programming_exp", "ind-international_exp", "ind-entrepeneur_exp", "ind-exact_study", "decision"]
+    boolean_features = [
+        "ind-debateclub",
+        "ind-programming_exp",
+        "ind-international_exp",
+        "ind-entrepeneur_exp",
+        "ind-exact_study",
+        "decision",
+    ]
     categorical_features = ["sport", "ind-degree", "company"]
     dataset = data.get_dataset()
     encoder = OneHotEncoder(sparse_output=False)
     encoded = encoder.fit_transform(dataset[categorical_features])
-    encoded_df = pd.DataFrame(encoded, columns=encoder.get_feature_names_out(categorical_features))
-    dataset = pd.concat([encoded_df, dataset.drop(columns=categorical_features)], axis=1)
+    encoded_df = pd.DataFrame(
+        encoded, columns=encoder.get_feature_names_out(categorical_features)
+    )
+    dataset = pd.concat(
+        [encoded_df, dataset.drop(columns=categorical_features)], axis=1
+    )
     dataset[boolean_features] = dataset[boolean_features].astype(int)
     output_path = os.path.join(DATA_ARTIFACTS_PATH, config.resulting_filepath)
     dataset.to_parquet(output_path)
     return Data(output_path)
-    
-    
+
+
 def resample_equal(df, cat):
     """Resamples the DataFrame to balance categories by oversampling based on a combined category-label identifier."""
     df["uid"] = df[cat] + df["Label"].astype(
@@ -114,12 +127,15 @@ def bias_mitigation_pre_reweighing(data: Data, config: Configuration) -> Data:
 def drift_detection():
     pass
 
+
 ##################################################################### Platform code
 
 
 def run_on_platform():
-    data_gen_fn = project.new_function(name="data-prep",
-                                    kind="python",
-                                    python_version="PYTHON3_10",
-                                    code_src="src/data-prep.py",
-                                    handler="data_generator")
+    data_gen_fn = project.new_function(
+        name="data-prep",
+        kind="python",
+        python_version="PYTHON3_10",
+        code_src="src/data-prep.py",
+        handler="data_generator",
+    )

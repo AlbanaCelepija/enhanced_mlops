@@ -123,7 +123,9 @@ operations:
         method_name: model_evaluation
         requirements: requirements.txt
         inputs:
-          - 
+          - data: hiring_data_processed
+          - model: model_fairness_unaware
+          - configuration: model_train_fairness_unaware
         outputs:
           - report: model_metrics_report
 ####################################################### Operationalization Stage
