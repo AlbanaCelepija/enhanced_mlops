@@ -19,25 +19,9 @@ def show_dashboard(current_product, current_framework):
     )
     with open(product_config_file, "r") as yaml_file:
         aipc_configs = yaml.safe_load(yaml_file)
+    
     with open(pipeline_definitions_folder, "r") as yaml_file:
         pipeline_configs = yaml.safe_load(yaml_file)
-    pipeline_ai_operations = pipeline_configs["ai_operations"]
-    pipeline_data_operations = [
-        elem["operations"]
-        for elem in pipeline_ai_operations
-        if elem["stage"] == "data_preparation"
-    ]
-    pipeline_model_operations = [
-        elem["operations"]
-        for elem in pipeline_ai_operations
-        if elem["stage"] == "modelling"
-    ]
-    pipeline_operationalisation_ops = [
-        elem["operations"]
-        for elem in pipeline_ai_operations
-        if elem["stage"] == "operationalization"
-    ]
-
     requirements_dimensions = pipeline_configs["requirements_dimensions"]
     for req in requirements_dimensions:
         st.write(req.upper())
@@ -56,11 +40,7 @@ def show_dashboard(current_product, current_framework):
                         "passed_operations": passed_operations,
                     }
                 )
-        all_pipeline_operations = (
-            pipeline_data_operations[0]
-            + pipeline_model_operations[0]
-            + pipeline_operationalisation_ops[0]
-        )
+        all_pipeline_operations = get_pipeline_operations()
         cols = st.columns(len(all_pipeline_operations))
         for col, pipeline_op in zip(cols, all_pipeline_operations):
             op_type = list(pipeline_op.keys())[0]
@@ -77,3 +57,29 @@ def show_dashboard(current_product, current_framework):
                 help=op_type,
                 type="primary" if passed else "secondary",
             )
+
+def get_pipeline_operations():
+    with open(pipeline_definitions_folder, "r") as yaml_file:
+        pipeline_configs = yaml.safe_load(yaml_file)
+    pipeline_ai_operations = pipeline_configs["ai_operations"]
+    pipeline_data_operations = [
+        elem["operations"]
+        for elem in pipeline_ai_operations
+        if elem["stage"] == "data_preparation"
+    ]
+    pipeline_model_operations = [
+        elem["operations"]
+        for elem in pipeline_ai_operations
+        if elem["stage"] == "modelling"
+    ]
+    pipeline_operationalisation_ops = [
+        elem["operations"]
+        for elem in pipeline_ai_operations
+        if elem["stage"] == "operationalization"
+    ]
+    all_pipeline_operations = (
+            pipeline_data_operations[0]
+            + pipeline_model_operations[0]
+            + pipeline_operationalisation_ops[0]
+        )
+    return all_pipeline_operations

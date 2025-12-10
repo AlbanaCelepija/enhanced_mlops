@@ -8,7 +8,7 @@ from streamlit_option_menu import option_menu
 from streamlit_elements import mui, elements
 from library.src.artifact_types import Data, Configuration, Report
 
-from dashboard import show_dashboard
+from dashboard import show_dashboard, get_pipeline_operations
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
@@ -171,7 +171,11 @@ def populate_frames(
     data_artifacts,
     configuration_artifacts,
 ):
-    st.write(selected_data_operation)
+    with open(pipeline_definitions_folder, "r") as yaml_file:
+        pipeline_configs = yaml.safe_load(yaml_file)
+        all_pipeline_operations = get_pipeline_operations()
+        selected_op = [elem for elem in all_pipeline_operations if list(elem.keys())[0] == selected_data_operation]
+        st.write(selected_op[0][selected_data_operation]["desc"])
     for ind, operation in enumerate(operations):
         if operation["type"] == selected_data_operation:
             operation_id = operation["id"]
@@ -204,15 +208,15 @@ def populate_frames(
                         "Code implementation", key=f"code_{ind}", value=method_content
                     )
                 with tab3:
-                    st.write("This is the Metadata tab")
+                    st.write("This tab contains Metadata specifications for the Inputs/Outputs")
                     metadata = st.text_area(
                         "Metadata information", key=f"meta_{ind}", value=specs
                     )
                 with tab4:
-                    st.write("This is the Input tab")
+                    st.write("This tab contains Input data that the methods receives")
                     inputs = st.text_area("Inputs", key=f"input_{ind}", value=inputs)
                 with tab5:
-                    st.write("This is the Output tab")
+                    st.write("This tab contains Output data that the methods produces")
                     outputs = st.text_area("Inputs", key=f"output_{ind}", value=outputs)
 
                 if st.button("Run operation", key=f"run_op_{ind}"):
