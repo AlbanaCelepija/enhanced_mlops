@@ -1,6 +1,8 @@
 ### UI
 streamlit_option_menu
 streamlit
+streamlit-ace
+streamlit-monaco
 
 
 ## library
