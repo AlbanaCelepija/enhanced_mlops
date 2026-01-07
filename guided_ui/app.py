@@ -1,14 +1,18 @@
+# streamlit: page_name = "Main"
 import os
 import sys
 import yaml
+import json
 import inspect
 import streamlit as st
 import importlib.util
+from utils import get_pipeline_operations, session_state_params
+from streamlit_ace import st_ace
+from streamlit_monaco import st_monaco
 from streamlit_option_menu import option_menu
 from streamlit_elements import mui, elements
 from library.src.artifact_types import Data, Configuration, Report
 
-from dashboard import show_dashboard, get_pipeline_operations
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
@@ -174,7 +178,11 @@ def populate_frames(
     with open(pipeline_definitions_folder, "r") as yaml_file:
         pipeline_configs = yaml.safe_load(yaml_file)
         all_pipeline_operations = get_pipeline_operations()
-        selected_op = [elem for elem in all_pipeline_operations if list(elem.keys())[0] == selected_data_operation]
+        selected_op = [
+            elem
+            for elem in all_pipeline_operations
+            if list(elem.keys())[0] == selected_data_operation
+        ]
         st.write(selected_op[0][selected_data_operation]["desc"])
     for ind, operation in enumerate(operations):
         if operation["type"] == selected_data_operation:
@@ -188,45 +196,98 @@ def populate_frames(
             with st.expander(
                 f"Operation {operation_id}: {operation_name}", expanded=True
             ):
-                tab1, tab2, tab3, tab4, tab5 = st.tabs(
-                    ["Documentation", "Code", "Metadata", "Input", "Output"]
-                )
-                with tab1:
-                    st.write("This is the Documentation tab")
-                    code = st.text_area(
-                        "Documentation", key=f"doc_{ind}", value=operation["name"]
+                cols_oper = st.columns([7, 3])
+                with cols_oper[0]:
+                    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+                        ["Documentation", "Code", "Metadata", "Input", "Output"]
                     )
-                with tab2:
-                    st.write("This is the Code tab")
-                    method_content = load_method_content(
-                        method_name,
-                        current_product,
-                        current_framework,
-                        step_operations_module,
+                    with tab1:
+                        st.write("This is the Documentation tab")
+                        code = st.text_area(
+                            "Documentation", key=f"doc_{ind}", value=operation["name"]
+                        )
+                    with tab2:
+                        st.write("This is the Code tab")
+                        method_content = load_method_content(
+                            method_name,
+                            current_product,
+                            current_framework,
+                            step_operations_module,
+                        )
+                        code = st_ace(
+                            value=method_content,
+                            language="python",
+                            theme="xcode",
+                            key=f"code_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=True,
+                        )
+                    with tab3:
+                        st.write(
+                            "This tab contains Metadata specifications for the Inputs/Outputs"
+                        )
+                        metadata = st_ace(
+                            value=json.dumps(specs, indent=2),
+                            language="json",
+                            theme="xcode",
+                            key=f"metadata_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=True,
+                        )
+                    with tab4:
+                        st.write(
+                            "This tab contains Input data that the methods receives"
+                        )
+                        inputs = st_ace(
+                            value=json.dumps(inputs, indent=2),
+                            language="json",
+                            theme="xcode",
+                            key=f"input_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=True,
+                        )
+                    with tab5:
+                        st.write(
+                            "This tab contains Output data that the methods produces"
+                        )
+                        outputs = st_ace(
+                            value=json.dumps(outputs, indent=2),
+                            language="json",
+                            theme="xcode",
+                            key=f"output_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=True,
+                        )
+                    if st.button("Run operation", key=f"run_op_{ind}"):
+                        run_data_operation(
+                            operation,
+                            data_artifacts,
+                            model_artifacts,
+                            configuration_artifacts,
+                            current_product,
+                            current_framework,
+                        )
+                with cols_oper[1]:
+                    st.write(
+                        "The following code is a recommended implementation for this operation, derived from a catalog of open-source tools."
                     )
-                    code = st.text_area(
-                        "Code implementation", key=f"code_{ind}", value=method_content
-                    )
-                with tab3:
-                    st.write("This tab contains Metadata specifications for the Inputs/Outputs")
-                    metadata = st.text_area(
-                        "Metadata information", key=f"meta_{ind}", value=specs
-                    )
-                with tab4:
-                    st.write("This tab contains Input data that the methods receives")
-                    inputs = st.text_area("Inputs", key=f"input_{ind}", value=inputs)
-                with tab5:
-                    st.write("This tab contains Output data that the methods produces")
-                    outputs = st.text_area("Inputs", key=f"output_{ind}", value=outputs)
-
-                if st.button("Run operation", key=f"run_op_{ind}"):
-                    run_data_operation(
-                        operation,
-                        data_artifacts,
-                        model_artifacts,
-                        configuration_artifacts,
-                        current_product,
-                        current_framework,
+                    metadata = st_ace(
+                        value=method_content,
+                        language="json",
+                        theme="xcode",
+                        key=f"suggestion_{ind}",
+                        height=300,
+                        font_size=14,
+                        show_gutter=True,
+                        readonly=True,
                     )
 
 
@@ -305,24 +366,14 @@ def run_data_operation(
     # result = method_name(**input_vars)
 
 
-def session_state_test():
-    st.title("Counter Example")
-    if "count" not in st.session_state:
-        st.session_state.count = 0
-    increment = st.button("Increment")
-    if increment:
-        st.session_state.count += 1
-    st.write("Count = ", st.session_state.count)
-
-
 def main():
-    st.set_page_config(layout="wide")
-    st.sidebar.title("AI product development lifecycle")
-    if st.sidebar.button("Start new AI product", key="new_ai_product"):
-        pass  # st.sidebar.write("Creating new AI product project ...")
-    current_framework = st.sidebar.selectbox("Tool governance platform", platform_list)
-    current_product = st.sidebar.selectbox("AI Products list", use_cases_list)
-    # session_state_test()
+    st.set_page_config(layout="wide", page_title="Guided AI Product")
+    # st.sidebar.title("AI product development lifecycle")
+    current_product = st.sidebar.selectbox("AI Products list", use_cases_list, index=3)
+    current_framework = st.sidebar.selectbox(
+        "Tool governance platform", platform_list, index=0
+    )
+    session_state_params(current_product, current_framework)
 
     with st.sidebar:
         current_step = option_menu(
@@ -341,11 +392,7 @@ def main():
             default_index=0,
             orientation="vertical",
         )
-    if st.button("Summary Dashboard", key="dashboard"):
-        # settings = st.Page("dashboard.py", title="Summary Dashboard")
-        show_dashboard(current_product, current_framework)
-    else:
-        show_stage(current_step, selected_aspect, current_product, current_framework)
+    show_stage(current_step, selected_aspect, current_product, current_framework)
 
 
 if __name__ == "__main__":
