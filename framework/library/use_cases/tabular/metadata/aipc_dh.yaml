@@ -199,6 +199,7 @@ operations:
 artifacts:
   data:
     - name: hiring_data_processed
+      category: raw
       filepath: data.parquet
     - name: hiring_data_reweighed
       filepath: data_reweighed.parquet

@@ -3,7 +3,7 @@ import gdown
 import pickle
 import numpy as np
 import pandas as pd
-from library.src.artifact_types import Data, Configuration, Report
+from library.src.artifact_types import Data, Configuration, Report, Status
 
 # from holisticai.bias.mitigation import Reweighing
 from sklearn.model_selection import train_test_split
@@ -36,7 +36,7 @@ def load_data_0(config: Configuration):
     return Data(config.resulting_filepath, data)
 
 
-def split_data_from_df(data):
+def split_data_from_df(data, sensitive_features):
     """
     Splits a DataFrame into features (X), labels (y), and demographic data (dem).
     """
@@ -106,8 +106,10 @@ def bias_mitigation_pre_reweighing(data: Data, config: Configuration) -> Data:
         data, test_size=config.test_size, random_state=config.random_state
     )
     # Get the feature matrix (X), target labels (y), and demographic data for both sets
-    X_train, y_train, dem_train = split_data_from_df(data_train)
-    X_test, y_test, dem_test = split_data_from_df(data_test)
+    X_train, y_train, dem_train = split_data_from_df(
+        data_train, config.sensitive_features
+    )
+    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
 
     # Define the groups (Black and White) in the training data based on the 'Ethnicity' column
     group_a_train = dem_train["Ethnicity"] == "Black"  # Group A: Black ethnicity
@@ -124,8 +126,35 @@ def bias_mitigation_pre_reweighing(data: Data, config: Configuration) -> Data:
     return Data(config.resulting_filepath, data_train)
 
 
-def drift_detection():
-    pass
+def data_drift_detection(data: Data, output: Report):
+    reference_data = data[:7000]
+    current_data = data[-900:]
+    data_drift_report = Report(
+        metrics=[
+            DataDriftPreset(),
+        ]
+    )
+    data_drift_report.run(reference_data=reference_data, current_data=current_data)
+    data_drift_report.save(f"{output.name}.html")
+    return output
+
+
+def data_drift_status(data: Data, output_status: Status):
+    reference_data = data[:7000]
+    current_data = data[-900:]
+    data_drift_report = Report(
+        metrics=[
+            DataDriftPreset(),
+        ]
+    )
+    data_drift_report.run(reference_data=reference_data, current_data=current_data)
+    data_drift_result = data_drift_report.as_dict()
+    final_status = (
+        data_drift_result["metrics"][0]["result"]["dataset_drift"]
+        & data_drift_result["metrics"][1]["result"]["dataset_drift"]
+    )
+    output_status.change_status(final_status)
+    return output_status
 
 
 ##################################################################### Platform code

@@ -276,7 +276,9 @@ def calculate_tpr(cms):
 ############################################################## Accuracy and fairness evaluation metrics
 
 
-def model_evaluation(data: Data, config: Configuration, model: Model):
+def model_evaluation_accuracy_overall(
+    data: Data, config: Configuration, model: Model
+) -> Report:
     model_name = model.name
     model_version = model.vesion
 
@@ -285,9 +287,65 @@ def model_evaluation(data: Data, config: Configuration, model: Model):
     model = mlflow.sklearn.load_model(f"models:/{model_name}/{model_version}")
 
     # prepare a validation dataset for prediction and predict
-    data = data.get_dataset()
-    y_pred_new = model.predict(data)
-    # TODO compare metrics and generate report (csv/json)
+    data = data.get_dataset()  # TODO load the test dataset
+    data_train, data_test = train_test_split(data, test_size=0.3, random_state=4)
+    # Get the feature matrix (X), target labels (y), and demographic data for both sets
+    X_test, y_test, dem_test = split_data_from_df(data_test)
+    y_pred_test = model.predict(X_test)
+
+    # Calculate the accuracy of the model on the test set
+    acc = accuracy_score(y_test, y_pred_test)
+    evaluation_metric = pd.DataFrame(
+        columns=["Metric", "Value"], data=[["Accuracy", acc]]
+    )
+    report = Report(config.file_path).save_report(evaluation_metric)
+    return report
+
+
+def model_evaluation_accuracy_demographic_groups(
+    data: Data, config: Configuration, model: Model
+) -> Report:
+    model_name = model.name
+    model_version = model.vesion
+
+    # Load the model from the Model Registry
+    model_uri = f"models:/{model_name}/{model_version}"
+    model = mlflow.sklearn.load_model(f"models:/{model_name}/{model_version}")
+
+    # prepare a validation dataset for prediction and predict
+    data = data.get_dataset()  # TODO load the test dataset
+    data_train, data_test = train_test_split(data, test_size=0.3, random_state=4)
+    # Get the feature matrix (X), target labels (y), and demographic data for both sets
+    X_test, y_test, dem_test = split_data_from_df(data_test)
+    y_pred_test = model.predict(X_test)
+
+    evaluation_metrics = []
+    print("---- ACCURACY BY GENDER ----")
+    # Calculate accuracy for each gender group
+    dem_test = dem_test.reset_index(drop=True)
+    for group in dem_test["Gender"].unique():
+        # Get the indices of the samples belonging to the current group
+        idx_group = dem_test[dem_test["Gender"] == group].index
+
+        # Calculate the accuracy for the current group
+        acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
+        print(group, "Accuracy = %.3f" % acc)
+        metrics += [["Accuracy by gender", group, "%.3f" % acc]]
+    print("---- ACCURACY BY ETHNICITY ----")
+    # Calculate accuracy for each ethnicity group
+    for group in dem_test["Ethnicity"].unique():
+        # Get the indices of the samples belonging to the current group
+        idx_group = dem_test[dem_test["Ethnicity"] == group].index
+
+        # Calculate the accuracy for the current group
+        acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
+        print(group, "Accuracy = %.3f" % acc)
+    evaluation_results = pd.DataFrame(
+        metrics, columns=["Metric Type", "Group", "Value"]
+    )
+    report = Report(evaluation_results)
+    report.save_report(config.filepath)
+    return report
 
 
 ############################################################## Bias Mitigation techniques

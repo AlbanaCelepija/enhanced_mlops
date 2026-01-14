@@ -15,10 +15,10 @@ operations:
       framework: local
       spec:
         path: data_preparation.py
-        method_name: drift_detection
+        method_name: data_drift_detection
         requirements: requirements.txt
         inputs:
-          - configuration:  constraints_file    # range of values, thresholds    
+          - data:  hiring_data_original   
         outputs:
           - report: data_report
 
@@ -31,12 +31,13 @@ operations:
       framework: local
       spec: 
         path: data_preparation.py
-        method_name: drift_detection
+        method_name: data_drift_status
         requirements: requirements.txt
         inputs:
-          - configuration:         
+          - data: hiring_data_original
+          - configuration: constraints_file    # range of values, thresholds       
         outputs:
-          -   
+          -  status: data_drift_status
 
 ####################################################### Data Preparation Stage
   - type: data_preprocessing  
@@ -113,14 +114,32 @@ operations:
 # model evaluation 
   - type: model_evaluation
     stage: modelling
-    id: model_evaluate_accuracy
-    name: Model Evaluation quality performance
-    requirement_dimension: baseline
+    id: model_evaluate_statistical_parity
+    name: Model Overall Performance Evaluation
+    requirement_dimension: fairness
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: model_evaluation
+        method_name: model_evaluation_accuracy
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_fairness_unaware
+          - configuration: model_train_fairness_unaware
+        outputs:
+          - report: model_metrics_report
+        
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluate_statistical_parity
+    name: Model Demographic Groups Performance Evaluation
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: model_evaluation_accuracy
         requirements: requirements.txt
         inputs:
           - data: hiring_data_processed
@@ -202,6 +221,7 @@ operations:
 artifacts:
   data:
     - name: hiring_data_original
+      category: raw
       filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
     - name: hiring_data_processed
       filepath: data.parquet
@@ -220,9 +240,12 @@ artifacts:
         resulting_filepath: data_training.parquet
     - name: output_reweigh_file
       config:
-        resulting_filepath: data_reweighed.parquet
+        sensitive_features:
+          - Ethnicity
+          - Gender
         test_size: 0.3
         random_state: 4
+        resulting_filepath: data_reweighed.parquet
     - name: model_train_fairness_unaware
       config:
         test_size: 0.3

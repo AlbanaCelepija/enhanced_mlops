@@ -17,6 +17,9 @@ ipywidgets
 
 # for fairness
 holisticai==1.0.14
+jax
+optax
+flax
 
 # for explainability
 pyyaml

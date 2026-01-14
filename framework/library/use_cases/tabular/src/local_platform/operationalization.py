@@ -1,6 +1,6 @@
 import requests
-from utils import *
-from artifact_types import Data, Configuration, Report
+from library.use_cases.tabular.src.local_platform.utils import *
+from library.src.artifact_types import Data, Configuration, Report
 
 # from kserve import Model, KFServer
 from kserve import RESTConfig, InferenceRESTClient
