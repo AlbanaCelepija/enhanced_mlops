@@ -5,6 +5,7 @@ from evidently.metric_preset import DataDriftPreset
 
 from library.src.artifact_types import Data, Artifact, Model, Configuration, Report
 
+
 def data_profiling_detect_data_drift(
     reference_data: Data,
     current_data: Data,
@@ -23,4 +24,3 @@ def data_profiling_detect_data_drift(
 
     # Return the results
     return report.show()
-

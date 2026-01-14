@@ -7,10 +7,14 @@ from fairlearn.metrics import (
     false_negative_rate,
     selection_rate,
     count,
-    false_negative_rate_difference
+    false_negative_rate_difference,
 )
 from fairlearn.postprocessing import ThresholdOptimizer, plot_threshold_optimizer
-from fairlearn.reductions import ExponentiatedGradient, EqualizedOdds, TruePositiveRateParity
+from fairlearn.reductions import (
+    ExponentiatedGradient,
+    EqualizedOdds,
+    TruePositiveRateParity,
+)
 
 ################################# fairlearn pre-processing example #################################
 
@@ -20,8 +24,11 @@ from fairlearn.reductions import ExponentiatedGradient, EqualizedOdds, TruePosit
 
 ################################# fairlearn post-processing example #################################
 
-def post_inference_transformations_threshold_EO(data_inference: Data, data_postinference: Data, estimator: Model):  
-     
+
+def post_inference_transformations_threshold_EO(
+    data_inference: Data, data_postinference: Data, estimator: Model
+):
+
     postprocess_est = ThresholdOptimizer(
         estimator=estimator,
         constraints="equalized_odds",  # Optimize FPR and FNR simultaneously
@@ -30,8 +37,11 @@ def post_inference_transformations_threshold_EO(data_inference: Data, data_posti
         predict_method="predict_proba",
     )
 
-def post_inference_transformations_threshold_EO(data_inference: Data, data_postinference: Data, estimator: Model):  
-     
+
+def post_inference_transformations_threshold_EO(
+    data_inference: Data, data_postinference: Data, estimator: Model
+):
+
     postprocess_est = ThresholdOptimizer(
         estimator=estimator,
         constraints="equalized_odds",  # Optimize FPR and FNR simultaneously
