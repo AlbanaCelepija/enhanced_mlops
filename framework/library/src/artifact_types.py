@@ -26,7 +26,7 @@ class Data:
 
     def get_dataset(self):
         return self.dataset
-    
+
     def output_dataset(self, filepath):
         self.dataset.to_parquet(filepath)
 
@@ -48,6 +48,12 @@ class Report:
             elif self.filetype == "json":
                 return pd.read_json(self.filepath)
         return None
+
+    def save_report(self, dataframe):
+        if self.filetype == "csv":
+            return dataframe.to_csv(self.filepath)
+        elif self.filetype == "json":
+            return dataframe.to_json(self.filepath)
 
 
 class Model:
@@ -109,10 +115,10 @@ class Documentation:
         self.type = type
         self.filepath = filepath
         self.content = content
-    
+
     def get_content(self):
         return self.content
-    
+
     def save_content(self):
         with open(self.filepath, "w") as file:
             file.write("\n\n ".join(self.type, self.content))
@@ -135,8 +141,6 @@ class Service:
 
     def __init__(self, name):
         self.name = name
-        
-    
 
 
 class Logs:
