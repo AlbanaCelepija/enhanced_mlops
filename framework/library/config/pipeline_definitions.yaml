@@ -18,7 +18,7 @@ ai_operations:
             - Configuration
           output: 
             - Status
-          desc: "Validate the quality of training data to identify issues that could impact model performance"
+          desc: "Validate the quality of training data to identify issues that could impact model performance. Measuring or validating data means to quantitatively describe or summarize the properties of a data collection. These metrics generally do not use ground truth labels and only measure the intrinsic characteristics of data. The most prominent example is descriptive statistics that summarizes a data collection by a group of unsupervised measures such as mean or median for central tendency, variance or minimum-maximum for dispersion, skewness for symmetry."
       - data_preprocessing:
           input:
             - Data
@@ -115,8 +115,8 @@ requirements_dimensions:
   - baseline
   - fairness
   - robustness
+    # [Robust] it works well for data it was trained on and also on data drifts, outliers or unseen data
+    # [Resilient] it is robust AND adapts to new data
   - optimization
-
-
-
-
+  - privacy
+  - transparency

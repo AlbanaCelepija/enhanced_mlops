@@ -8,3 +8,7 @@ streamlit-monaco
 ## library
 uvicorn
 fastapi
+
+# toolikits
+nefertem
+alibi-detect[torch,tensorflow]

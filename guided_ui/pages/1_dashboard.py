@@ -90,7 +90,11 @@ def read_operations_status(pipeline_configs, aipc_configs, requirement):
 
 
 if __name__ == "__main__":
-    current_product = st.session_state.current_product
-    current_framework = st.session_state.current_framework
-    st.set_page_config(page_title="Dashboard")
+    current_product = 0
+    current_framework = 0
+    if "current_product" in st.session_state:
+        current_product = st.session_state.current_product
+    if "current_framework" in st.session_state:
+        current_framework = st.session_state.current_framework
+    st.set_page_config(page_title="Dashboard", layout="wide")
     show_dashboard(current_product, current_framework)
