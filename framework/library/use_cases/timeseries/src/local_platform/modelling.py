@@ -61,3 +61,5 @@ def fit_gaussian_mixture_model(raw_df: Data, config: Configuration, nr_clusters=
     )
     return statistics   
 
+def model_evaluation_clustering(data: Data, model: Model, config: Configuration):
+    pass

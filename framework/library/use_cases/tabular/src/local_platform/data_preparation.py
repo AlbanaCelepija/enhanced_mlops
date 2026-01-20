@@ -9,7 +9,9 @@ from library.src.artifact_types import Data, Configuration, Report, Status
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 
-# import digitalhub as dh
+# data profiling
+from ydata_profiling import ProfileReport
+
 
 """ 
 Data preparation stage containing 4 operations
@@ -72,6 +74,11 @@ def load_data(data: Data, config: Configuration):
     dataset.to_parquet(output_path)
     return Data(output_path)
 
+def data_profiling_eda(input_data: Data, report: Report):
+    profile = ProfileReport(df, title="Profiling Report")
+    profile.to_file(report.resulting_filepath)
+    return Report(report.resulting_filepath)
+    
 
 def resample_equal(df, cat):
     """Resamples the DataFrame to balance categories by oversampling based on a combined category-label identifier."""
@@ -168,3 +175,5 @@ def run_on_platform():
         code_src="src/data-prep.py",
         handler="data_generator",
     )
+
+

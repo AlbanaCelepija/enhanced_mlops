@@ -10,34 +10,34 @@ operations:
 ####################################################### Evaluate if AI product can be reused for new use case
   - type: data_profiling  
     stage: data_preparation
-    id: data_profiling
-    name: Evaluate whether the target production data have drifted from the training data.
+    id: data_profiling_reuse
+    name: Data profiling procedure to generate EDA report for production time series data characteristics
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: data_preparation.py
-        method_name: data_drift_detection
+        method_name: data_profiling_reuse
         requirements: requirements.txt
         inputs:
-          - data:  hiring_data_original 
+          - data:  ts_data_prod 
           - configuration: constraints_file    # total number, range of values, thresholds    
         outputs:
-          - report: data_report
+          - report: data_profiling_reuse_report
 
   - type: data_validation  
     stage: data_preparation
-    id: data_drift_detection
+    id: compare_ts_profiling_reports
     name: Evaluate if target production data are drifted from training data 
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec: 
         path: data_preparation.py
-        method_name: data_drift_status
+        method_name: compare_ts_profiling_reports
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_original
+          - data: ts_data_original
           - configuration: constraints_file    # range of values, thresholds       
         outputs:
           -  status: data_drift_status
@@ -45,129 +45,94 @@ operations:
 ####################################################### Data Preparation Stage
   - type: data_preprocessing  
     stage: data_preparation
-    id: data_preprocessing_step1
+    id: load_data
     name: Data preprocessing initial analysis 
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
-        path: src/local_platform/data_preparation.py
+        path: data_preparation.py
         method_name: load_data
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_original
+          - data: ts_data_original
           - configuration: output_file  
         outputs:
-          - data: hiring_data_processed 
+          - data: ts_data_processed 
 
-  - type: data_preprocessing  
+  - type: data_profiling  
     stage: data_preparation
-    id: data_preprocessing_reweighing
-    name: Data reweighing to mitigate bias 
-    requirement_dimension: fairness
+    id: training_data_profiling
+    name: Data profiling procedure to generate EDA report for time series data characteristics
+    requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: data_preparation.py
-        method_name: bias_mitigation_pre_reweighing
+        method_name: training_data_profiling
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
-          - configuration: output_reweigh_file        
+          - data:  ts_data_prod 
+          - configuration: constraints_file    # total number, range of values, thresholds    
         outputs:
-          - data: hiring_data_reweighed 
+          - report: training_data_profiling_report
 
+  - type: data_validation  
+    stage: data_preparation
+    id: compare_ts_profiling_reports
+    name: Training data validation to check data quality 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec: 
+        path: data_preparation.py
+        method_name: compare_ts_profiling_reports
+        requirements: requirements.txt
+        inputs:
+          - data: ts_data_original
+          - configuration: constraints_file    # range of values, thresholds       
+        outputs:
+          -  status: data_drift_status
 ######################################################### Modelling Stage
 
   - type: model_training
     stage: modelling
     id: model_train
-    name: Model Training without fairness awareness
+    name: Model Training 
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: train_model
+        method_name: fit_gaussian_mixture_model
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
-          - configuration: model_train_fairness_unaware
+          - data: ts_data_processed
+          - configuration: model_train
         outputs:
-          - model: model_fairness_unaware
-
-  - type: model_training
-    stage: modelling
-    id: model_train_reweighing
-    name: Model Training fairness aware
-    requirement_dimension: fairness
-    implementation: 
-      framework: local
-      spec:
-        path: modelling.py
-        method_name: bias_mitigation_in_process_train
-        requirements: requirements.txt
-        inputs:
-          - data: hiring_data_reweighed
-          - configuration: model_train_fairness_aware
-          - report: model_acc_fairness_metric_report
-        outputs:
-          - model: model_fairness_aware
+          - model: model_clustering
 
 # model evaluation 
   - type: model_evaluation
     stage: modelling
-    id: model_evaluate_statistical_parity
-    name: Model Demographic Groups Performance Evaluation
-    requirement_dimension: fairness
+    id: model_evaluate_clustering
+    name: Clustering Model Evaluation
+    requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: model_evaluation_accuracy
+        method_name: model_evaluation_clustering
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
-          - model: model_fairness_unaware
-          - configuration: model_train_fairness_unaware
+          - data: ts_data_processed
+          - model: model_clustering
+          - configuration: model_train_config
         outputs:
           - report: model_metrics_report
 ####################################################### Operationalization Stage
 
-# model deployment (kserve)
-  - type: model_deployment
-    stage: operationalization
-    id: model_deploy
-    name: Model Deployment using kserve
-    requirement_dimension: baseline
-    implementation: 
-      framework: local
-      spec:
-        path: operationalization.py
-        method_name: model_deploy
-        requirements: requirements.txt
-        inputs:
-          - model: model_fairness_unaware
 
-        outputs:
-          - configuration: model_inferenceservice_endpoint
-
-# TODO observability (mlflow, wandb)
-  - type: model_monitoring
-    stage: operationalization
-    id: model_monitor
-    name: Model Monitoring using mlflow
-    requirement_dimension: baseline
-    implementation: 
-      framework: local
-      spec:
-        path: operationalization.py
-        method_name: model_monitor
-        requirements: requirements.txt
-        inputs:
-          - 
-        outputs:
-          - 
 
 ##################################################### Artifacts
 artifacts:

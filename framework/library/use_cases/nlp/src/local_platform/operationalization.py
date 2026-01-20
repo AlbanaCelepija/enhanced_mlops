@@ -1,6 +1,6 @@
 import ollama
 import requests
-from utils import *
+from library.use_cases.tabular.src.local_platform.utils import *
 from library.src.artifact_types import Data, Configuration, Report
 from sklearn.metrics import accuracy_score, confusion_matrix
 

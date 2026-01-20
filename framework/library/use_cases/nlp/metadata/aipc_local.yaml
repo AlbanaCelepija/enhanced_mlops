@@ -1,6 +1,8 @@
 domain: PA
 data_modality: text
-ai_task: text_generation
+ai_task: text_classification
+ai_product_name: Document classifier
+ai_product_description: This is a multi-label legal documents classification with BERT
 framework: local
 operations:
 

@@ -100,6 +100,12 @@ def show_stage(
     product_config_file = os.path.join(
         USE_CASES_FOLDER, current_product, "metadata", f"aipc_{current_framework}.yaml"
     )
+    if not os.path.exists(product_config_file):
+        st.error(
+            f"Configuration file for {current_product} does not exist for {current_framework} platform. Please, configure the AI product properly",
+            icon="🚨",
+        )
+        return
     with open(product_config_file, "r") as yaml_file:
         aipc_configs = yaml.safe_load(yaml_file)
         # operations
@@ -139,6 +145,8 @@ def show_stage(
                 data_artifacts,
                 configuration_artifacts,
             )
+            # visualize data artifacts
+            populate_data_artifacts(data_artifacts)
         elif current_step == "Modeling":
             populate_frames(
                 model_operations,
@@ -161,8 +169,6 @@ def show_stage(
                 data_artifacts,
                 configuration_artifacts,
             )
-        # visualize data artifacts
-        populate_data_artifacts(data_artifacts)
 
 
 def populate_frames(
@@ -183,7 +189,22 @@ def populate_frames(
             for elem in all_pipeline_operations
             if list(elem.keys())[0] == selected_data_operation
         ]
-        st.write(selected_op[0][selected_data_operation]["desc"])
+        desc = selected_op[0][selected_data_operation]['desc']
+        st.markdown(
+            f"""
+            <div style="
+                border: 2px solid #d1d5db;
+                border-radius: 10px;
+                padding: 16px;
+                background-color: #f3f4f6;
+                margin-bottom: 16px;
+            ">
+                <strong>Description:</strong><br>
+                {desc}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     for ind, operation in enumerate(operations):
         if operation["type"] == selected_data_operation:
             operation_id = operation["id"]
@@ -293,8 +314,33 @@ def populate_frames(
 
 def populate_data_artifacts(data_artifacts):
     with st.container():
+        st.markdown(
+            f"""
+                <strong>Raw Input Data:</strong><br>
+            """,
+            unsafe_allow_html=True
+        )
         for artifact in data_artifacts:
-            st.write(artifact)
+            if "category" in artifact and artifact["category"] == "raw":
+                content = ""
+                for k, v in artifact.items():
+                    content += f"<strong>{k}:</strong> {v}<br>"
+
+                st.markdown(
+                    f"""
+                    <div style="
+                        border: 2px solid #d1d5db;
+                        border-radius: 10px;
+                        padding: 16px;
+                        background-color: #f3f4f6;
+                        margin-bottom: 16px;
+                    ">
+                        {content}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                #st.write(artifact)
 
 
 def load_method_content(
@@ -369,10 +415,21 @@ def run_data_operation(
 def main():
     st.set_page_config(layout="wide", page_title="Guided AI Product")
     # st.sidebar.title("AI product development lifecycle")
-    current_product = st.sidebar.selectbox("AI Products list", use_cases_list, index=3)
     current_framework = st.sidebar.selectbox(
         "Tool governance platform", platform_list, index=0
     )
+    
+    use_cases_list_names = []
+    for product in use_cases_list:
+        if "metadata" in os.listdir(os.path.join(USE_CASES_FOLDER, product)):
+            config_file = os.path.join(USE_CASES_FOLDER, product, "metadata", "aipc_local.yaml")  
+            with open(config_file, "r") as yaml_file:
+                aipc_configs = yaml.safe_load(yaml_file)   
+                print(aipc_configs)    
+            use_cases_list_names.append(f"{product}: ({aipc_configs['ai_product_name']})")
+    current_product_label = st.sidebar.selectbox("AI Products list", use_cases_list_names, index=3)
+    current_product = current_product_label.split(": ")[0]
+
     session_state_params(current_product, current_framework)
 
     with st.sidebar:

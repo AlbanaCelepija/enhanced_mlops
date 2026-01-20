@@ -1,6 +1,8 @@
 domain: PA
 data_modality: tabular
 ai_task: classification
+ai_product_name: Hiring classifier
+ai_product_description: This is a sklearn model which aims to classify whether or not an individual should be hired.
 framework: local
 operations:
 

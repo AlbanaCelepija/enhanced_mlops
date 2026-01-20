@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from datasets import load_dataset
-from artifact_types import Data, Configuration, Report
+from library.src.artifact_types import Data, Configuration, Report
 from sklearn.model_selection import train_test_split
 
 from transformers import AutoTokenizer

@@ -1,3 +1,6 @@
+# for data preprocessing
+ydata-profiling
+ydata-synthetic
 
 # for modelling
 lightgbm
@@ -28,11 +31,11 @@ aix360
 lime
 
 # for AI documentation
-model-card-toolkit
+#model-card-toolkit
 # pip install model-card-toolkit --use-deprecated=legacy-resolver
 
 # for deployment
-kserve==0.15.2
-mlflow==3.2.0   #  mlflow[extras]  To deploy with MLServer
-mlserver==1.7.1
-mlserver_mlflow==1.7.1
+kserve
+#mlflow   #  mlflow[extras]  To deploy with MLServer
+mlserver
+mlserver_mlflow
