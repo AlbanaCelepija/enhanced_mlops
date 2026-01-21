@@ -3,12 +3,10 @@ streamlit_option_menu
 streamlit
 streamlit-ace
 streamlit-monaco
+streamlit_elements
+pyyaml
 
 
 ## library
 uvicorn
 fastapi
-
-# toolikits
-nefertem
-alibi-detect[torch,tensorflow]
