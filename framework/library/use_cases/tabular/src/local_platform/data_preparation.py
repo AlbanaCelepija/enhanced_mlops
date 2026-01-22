@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from library.src.artifact_types import Data, Configuration, Report, Status
+from library.use_cases.tabular.src.local_platform.utils import *
 
 # from holisticai.bias.mitigation import Reweighing
 from sklearn.model_selection import train_test_split
@@ -25,6 +26,7 @@ Data Documentation
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
+print(DATA_ARTIFACTS_PATH)
 
 
 def load_data_0(config: Configuration):
@@ -36,18 +38,6 @@ def load_data_0(config: Configuration):
     data = data.rename(columns={i: str(i) for i in range(500)})
     data.to_parquet(config.resulting_filepath)
     return Data(config.resulting_filepath, data)
-
-
-def split_data_from_df(data, sensitive_features):
-    """
-    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
-    """
-    filter_col = ["nationality", "gender"]
-    features = data.drop(columns=["Id", "decision"] + filter_col).columns
-    y = data["decision"].values  # Extract labels
-    X = data[features].values  # Extract features
-    dem = data[filter_col].copy()  # Extract demographics
-    return X, y, dem  # Return features, labels, demographics
 
 
 def load_data(data: Data, config: Configuration):
@@ -78,6 +68,8 @@ def data_profiling_eda(input_data: Data, report: Report):
     profile = ProfileReport(df, title="Profiling Report")
     profile.to_file(report.resulting_filepath)
     return Report(report.resulting_filepath)
+
+
     
 
 def resample_equal(df, cat):
@@ -177,3 +169,5 @@ def run_on_platform():
     )
 
 
+if __name__ == "__main__":
+    run_on_platform()

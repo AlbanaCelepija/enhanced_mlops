@@ -20,6 +20,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+def split_data_from_df(data, sensitive_features):
+    """
+    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
+    """
+    filter_col = sensitive_features
+    features = data.drop(columns=["Id", "decision"] + filter_col).columns
+    y = data["decision"].values  # Extract labels
+    X = data[features].values  # Extract features
+    dem = data[filter_col].copy()  # Extract demographics
+    return X, y, dem  # Return features, labels, demographics
+
+
 def get_metrics_classifier(group_a, group_b, y_pred, y_true):
     """
     Function to calculate and return model accuracy and fairness metrics for two groups
@@ -124,6 +136,40 @@ def plot_confusion_matrices(groups, data_test, category, y_test, y_pred_test):
     plt.show()  # Display plot
     return cm_dict  # Return dictionary of confusion matrices for each group
 
+def plot_cm(y_true, y_pred, labels=[1, 0], display_labels=[1, 0], ax=None):
+    """
+    Plots a single confusion matrix with annotations
+    """
+    cm = confusion_matrix(y_true, y_pred, labels=labels)  # Compute confusion matrix
+
+    if ax is None:
+        fig, ax = plt.subplots(
+            figsize=(4, 3)
+        )  # Create new figure if no axis is provided
+
+    # Create heatmap for confusion matrix
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="g",
+        cmap="viridis",
+        cbar=False,
+        xticklabels=display_labels,
+        yticklabels=display_labels,
+        square=True,
+        linewidths=2,
+        linecolor="black",
+        ax=ax,
+        annot_kws={"size": 14},
+    )
+
+    # Label and format axes
+    ax.set_xlabel("Predicted Label", fontsize=12, fontweight="bold")
+    ax.set_ylabel("True Label", fontsize=12, fontweight="bold")
+    ax.set_xticklabels(display_labels, fontsize=11)
+    ax.set_yticklabels(display_labels, fontsize=11)
+
+    return cm  # Return confusion matrix
 
 def generate_model_card():
     pass

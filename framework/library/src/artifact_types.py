@@ -9,26 +9,27 @@ class Data:
     The primary artifact fed into the training algorithm to fit the best model
     """
 
-    def __init__(self, filepath=None, dataset_name=None):
+    def __init__(self, filepath=None):
         self.filepath = filepath
-        self.dataset_name = dataset_name
         self.filetype = filepath.split(".")[1]
-        self.load_dataset()
 
     def load_dataset(self):
         if self.filetype == "csv":
-            self.dataset = pd.read_csv(self.filepath)
+            dataset = pd.read_csv(self.filepath)
         elif self.filetype == "json":
-            self.dataset = pd.read_json(self.filepath)
+            dataset = pd.read_json(self.filepath)
         else:
-            self.dataset = pd.read_parquet(self.filepath)
-        return self.dataset
+            dataset = pd.read_parquet(self.filepath)
+        return dataset
 
-    def get_dataset(self):
-        return self.dataset
+    def log_dataset(self, dataset):
+        if self.filetype == "csv":
+            dataset.to_csv(self.filepath)
+        elif self.filetype == "json":
+            dataset.to_json(self.filepath)
+        else:
+            dataset.to_parquet(self.filepath)
 
-    def output_dataset(self, filepath):
-        self.dataset.to_parquet(filepath)
 
 
 class Report:
@@ -39,7 +40,6 @@ class Report:
     def __init__(self, filepath):
         self.filepath = filepath
         self.filetype = filepath.split(".")[1]
-        self.load_report()
 
     def load_report(self):
         if os.path.isfile(self.filepath):
@@ -51,9 +51,11 @@ class Report:
 
     def save_report(self, dataframe):
         if self.filetype == "csv":
-            return dataframe.to_csv(self.filepath)
+            dataframe.to_csv(self.filepath)
         elif self.filetype == "json":
-            return dataframe.to_json(self.filepath)
+            dataframe.to_json(self.filepath)
+        
+
 
 
 class Model:

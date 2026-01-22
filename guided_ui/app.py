@@ -325,7 +325,6 @@ def populate_data_artifacts(data_artifacts):
                 content = ""
                 for k, v in artifact.items():
                     content += f"<strong>{k}:</strong> {v}<br>"
-
                 st.markdown(
                     f"""
                     <div style="
