@@ -32,7 +32,7 @@ def split_data_from_df(data, sensitive_features):
     return X, y, dem  # Return features, labels, demographics
 
 
-def get_metrics_classifier(group_a, group_b, y_pred, y_true):
+def get_metrics_classifier(group_a, group_b, y_pred, y_true, group_label):
     """
     Function to calculate and return model accuracy and fairness metrics for two groups
     Returns a DataFrame of model accuracy and fairness metrics for two groups.
@@ -51,21 +51,21 @@ def get_metrics_classifier(group_a, group_b, y_pred, y_true):
     ]  # Calculate f1-score
     metrics += [
         [
-            "Black vs. White Disparate Impact",
+            f"{group_label} Disparate Impact",
             round(disparate_impact(group_a, group_b, y_pred), 2),
             1,
         ]
     ]  # Calculate disparate impact
     metrics += [
         [
-            "Black vs. White Statistical Parity",
+            f"{group_label} Statistical Parity",
             round(statistical_parity(group_a, group_b, y_pred), 2),
             0,
         ]
     ]  # Calculate statistical parity
     metrics += [
         [
-            "Black vs. White Average Odds Difference",
+            f"{group_label} Average Odds Difference",
             round(average_odds_diff(group_a, group_b, y_pred, y_true), 2),
             0,
         ]

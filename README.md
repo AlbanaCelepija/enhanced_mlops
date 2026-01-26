@@ -15,8 +15,10 @@ Finally, we have developed a catalog of tools for implementing different require
 ## 📚 Citation
 
 ```bibtex
-@article{celepija_towards_nodate,
+@article{enhanced_mlops,
 	title = {Towards a structured {AI} development lifecycle for reusable {AI} products in the public sector},
-	author = {Celepija, Albana and Lepri, Bruno and Kazhamiakin, Raman}
+	author = {Celepija, Albana and Lepri, Bruno and Kazhamiakin, Raman},
+	year={2025},
+	url = {https://ceur-ws.org/Vol-4109/paper7.pdf}
 }
 ```

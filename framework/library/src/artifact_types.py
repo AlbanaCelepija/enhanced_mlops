@@ -2,6 +2,7 @@ import os
 import yaml
 import json
 import pandas as pd
+from pickle import load
 
 
 class Data:
@@ -24,7 +25,7 @@ class Data:
 
     def log_dataset(self, dataset):
         if self.filetype == "csv":
-            dataset.to_csv(self.filepath)
+            dataset.to_csv(self.filepath, index=False)
         elif self.filetype == "json":
             dataset.to_json(self.filepath)
         else:
@@ -63,9 +64,13 @@ class Model:
     Either a single file or multiple files constituting the model
     """
 
-    def __init__(self, model_path: str, model_name: str):
+    def __init__(self, model_path: str):
         self.model_path = model_path
-        self.model_name = model_name
+        
+    def load_model(self):
+        with open(self.model_path, "rb") as model_file:
+            model = load(model_file)
+            return model
 
 
 class Configuration:

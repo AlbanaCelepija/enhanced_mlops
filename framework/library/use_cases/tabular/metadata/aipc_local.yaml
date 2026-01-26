@@ -78,6 +78,7 @@ operations:
 
 ######################################################### Modelling Stage
 
+################### Model training
   - type: model_training
     stage: modelling
     id: model_train
@@ -113,16 +114,16 @@ operations:
         outputs:
           - model: model_fairness_aware
 
-# model evaluation 
+################### Model evaluation 
   - type: model_evaluation
     stage: modelling
-    id: model_evaluate_accuracy
+    id: model_evaluation_accuracy
     name: Model Overall Performance Evaluation
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
-        path: modelling.py
+        path: modelling.py 
         method_name: model_evaluation_accuracy
         requirements: requirements.txt
         inputs:
@@ -131,24 +132,62 @@ operations:
           - configuration: model_train
         outputs:
           - report: model_metrics_report
-        
+
   - type: model_evaluation
     stage: modelling
-    id: model_evaluate_statistical_parity
-    name: Model Demographic Groups Performance Evaluation
+    id: model_evaluation_accuracy_demographic_groups
+    name: Model Overall and Demographic Groups Performance Evaluation
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_accuracy_demographic_groups
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_baseline
+          - configuration: model_train
+        outputs:
+          - report: model_performance_metrics_demographic_report
+  
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_equality_of_outcome
+    name: Model Equality of Outcome Metrics Evaluation
     requirement_dimension: fairness
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: model_evaluate_statistical_parity
+        method_name: model_evaluation_equality_of_outcome
         requirements: requirements.txt
         inputs:
           - data: hiring_data_processed
           - model: model_fairness_aware
           - configuration: model_train_fairness_aware
         outputs:
-          - report: model_metrics_fairness_report
+          - report: model_eval_EOutcome_report
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_equality_of_opportunity
+    name: Model Equality of Opportunity Metrics Evaluation
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: model_evaluation_equality_of_opportunity
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_fairness_aware
+          - configuration: model_train_fairness_aware
+        outputs:
+          - report: model_eval_EOpportunity_report
+
+####################### Model Validation
 
   - type: model_validation
     stage: modelling
@@ -166,7 +205,7 @@ operations:
           - model: model_fairness_aware
           - configuration: model_train_fairness_aware
         outputs:
-          - report: model_metrics_fairness_report
+          - status: model_validation_baseline
 
   - type: model_validation
     stage: modelling
@@ -184,7 +223,8 @@ operations:
           - model: model_fairness_aware
           - configuration: model_train_fairness_aware
         outputs:
-          - report: model_metrics_fairness_report
+          - status: model_validation_fairness
+
 ####################################################### Operationalization Stage
 
 # model deployment (kserve)
@@ -260,6 +300,7 @@ artifacts:
   data:
     - name: hiring_data_original
       category: raw
+      modality: tabular
       filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
     - name: hiring_data_processed
       filepath: data_processed.parquet
@@ -301,8 +342,8 @@ artifacts:
         test_size: 0.3
         random_state: 4
         threshold: 70
-    - name: model_evaluation_fairness_metrics
-      config: # values considered fair for each metric
+    - name: model_evaluation_fairness_metrics     # values considered fair for each metric
+      config: 
         disparate_impact:
           min_allowed: 0.8
           max_allowed: 1.2
@@ -311,7 +352,11 @@ artifacts:
           max_allowed: 0.1
           strict_min_allowed: -0.05
           strict_max_allowed: 0.05
-      
+        equal_opportunity_difference:
+          min_allowed: -0.1
+          max_allowed: 0.1
+          strict_min_allowed: -0.05
+          strict_max_allowed: 0.05      
     - name: model_inferenceservice_endpoint
       endpoint: "http://localhost:8080/v2/models/hiring-sklearn/versions/v0.1.0/infer"
     - name: constraints_file
@@ -320,11 +365,22 @@ artifacts:
         min_training_data: 1000
   report:
     - name: data_profiling_report
-      filepath: artifacts/report/data_report.json    
+      filepath: artifacts/report/data_drift.html    
     - name: model_metrics_report
       filepath: model_metrics_report.csv
-    - name: model_acc_fairness_metrics_report
-      filepath: model_acc_fairness_metrics_report.csv
+    - name: model_performance_metrics_demographic_report
+      filepath: model_performance_metrics_demographic_report.csv
+    - name: model_eval_EOutcome_report
+      filepath: model_eval_EOutcome_report.csv
+    - name: model_eval_EOpportunity_report
+      filepath: model_eval_EOpportunity_report.csv
+  status:
+    - name: model_validation_baseline
+      filepath: model_validation.json
+      key: model_validation_baseline
+    - name: model_validation_fairness
+      filepath: model_validation.json
+      key: model_validation_fairness
   documentation:
     - name: data_card_hiring
       filepath: cards/data_card.md
@@ -339,3 +395,12 @@ artifacts:
     - name: model_deploy_service
       port: 1234
       namespace: kserve-test
+
+requirements_dimensions:
+  - baseline
+  - fairness
+  - robustness
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring
