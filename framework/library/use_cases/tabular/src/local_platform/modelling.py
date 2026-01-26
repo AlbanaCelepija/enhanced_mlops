@@ -1,5 +1,6 @@
 import os
 import pickle
+import logging
 from pickle import dump
 
 # import holisticai
@@ -29,6 +30,7 @@ from sklearn.metrics import (
 # import mlflow
 # import mlflow.sklearn
 
+logging.basicConfig(level=logging.INFO)
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
@@ -69,41 +71,7 @@ def permutation_feature_importance(data_test: Data, model: Model):
             )
 
 
-def get_metrics_classifier(group_a, group_b, y_pred, y_true):
-    """
-    Returns a DataFrame of model accuracy and fairness metrics for two groups.
-    """
-    metrics = [
-        ["Model Accuracy", round(accuracy_score(y_true, y_pred), 2), 1]
-    ]  # Calculate accuracy
-    metrics += [
-        [
-            "Black vs. White Disparate Impact",
-            round(disparate_impact(group_a, group_b, y_pred), 2),
-            1,
-        ]
-    ]  # Calculate disparate impact
-    metrics += [
-        [
-            "Black vs. White Statistical Parity",
-            round(statistical_parity(group_a, group_b, y_pred), 2),
-            0,
-        ]
-    ]  # Calculate statistical parity
-    metrics += [
-        [
-            "Black vs. White Average Odds Difference",
-            round(average_odds_diff(group_a, group_b, y_pred, y_true), 2),
-            0,
-        ]
-    ]  # Calculate average odds difference
-    return pd.DataFrame(
-        metrics, columns=["Metric", "Value", "Reference"]
-    )  # Return metrics as DataFrame
-
-
 #################################################### Model Training ####################################################
-
 
 def train_model_mlflow(data: Data, config: Configuration):
     """ """
@@ -186,19 +154,6 @@ def train_model(data: Data, config: Configuration, report: Report):
     with open(model_output_path, "wb") as model_file:
         dump(model, model_file, pickle.HIGHEST_PROTOCOL)
 
-    # Make predictions on the test set
-    y_pred_test = model.predict(X_test)
-
-    # Define the groupings for fairness analysis (Black and White) in the test set
-    group_a_test = dem_test["nationality"] == "Dutch"
-    group_b_test = dem_test["nationality"] == "Belgian"
-
-    metrics_rw = get_metrics_classifier(
-        group_a_test, group_b_test, y_pred_test, y_test
-    )
-    path = os.path.join(REPORT_ARTIFACTS_PATH, report.report_filepath)
-    metrics_baseline_report = Report(path)
-    metrics_baseline_report.save_report(metrics_rw)       
 
 def hyperparameters_optimization(data: Data, config: Configuration):
     data = data.get_dataset()
@@ -253,7 +208,7 @@ def model_evaluation_accuracy(
     # Calculate the accuracy of the model on the test set
     acc = accuracy_score(y_test, y_pred_test)
     evaluation_metric = pd.DataFrame(
-        columns=["Metric", "Value"], data=[["Accuracy", acc]]
+        columns=["Metric", "Value", "Reference"], data=[["Accuracy", acc, "1"]]
     )
     eval_acc_metric_report = Report(report.filepath).save_report(evaluation_metric)
     return eval_acc_metric_report
@@ -262,7 +217,7 @@ def model_evaluation_accuracy(
 ############################################################## Evaluations - Performance and Fairness evaluation metrics
 
 
-def model_evaluation_accuracy_overall(
+def model_evaluation_accuracy(
     data: Data, config: Configuration, model: Model
 ) -> Report:
     model_name = model.name
@@ -287,6 +242,21 @@ def model_evaluation_accuracy_overall(
     report = Report(config.file_path).save_report(evaluation_metric)
     return report
 
+# Make predictions on the test set
+y_pred_test = model.predict(X_test)
+
+# Define the groupings for fairness analysis (Black and White) in the test set
+group_a_test = dem_test["nationality"] == "Dutch"
+group_b_test = dem_test["nationality"] == "Belgian"
+
+metrics_rw = get_metrics_classifier(
+    group_a_test, group_b_test, y_pred_test, y_test
+)
+path = os.path.join(REPORT_ARTIFACTS_PATH, report.report_filepath)
+metrics_baseline_report = Report(path)
+metrics_baseline_report.save_report(metrics_rw)       
+    
+    
 
 def model_evaluation_accuracy_demographic_groups(
     data: Data, config: Configuration, model: Model
@@ -305,35 +275,66 @@ def model_evaluation_accuracy_demographic_groups(
     X_test, y_test, dem_test = split_data_from_df(data_test)
     y_pred_test = model.predict(X_test)
 
-    evaluation_metrics = []
-    print("---- ACCURACY BY GENDER ----")
+    logging.info("---- ACCURACY BY GENDER ----")
+    accuracy_demographics = []
     # Calculate accuracy for each gender group
     dem_test = dem_test.reset_index(drop=True)
     for group in dem_test["Gender"].unique():
         # Get the indices of the samples belonging to the current group
         idx_group = dem_test[dem_test["Gender"] == group].index
-
+        if group is None:
+            continue
         # Calculate the accuracy for the current group
         acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
-        print(group, "Accuracy = %.3f" % acc)
-        metrics += [["Accuracy by gender", group, "%.3f" % acc]]
-    print("---- ACCURACY BY ETHNICITY ----")
+        accuracy_demographics += [["Accuracy by gender", group, "%.3f" % acc]]
+
+
+    logging.info("---- ACCURACY BY ETHNICITY ----")
     # Calculate accuracy for each ethnicity group
     for group in dem_test["Ethnicity"].unique():
         # Get the indices of the samples belonging to the current group
         idx_group = dem_test[dem_test["Ethnicity"] == group].index
-
+        if group is None:
+            continue
         # Calculate the accuracy for the current group
         acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
-        print(group, "Accuracy = %.3f" % acc)
-    evaluation_results = pd.DataFrame(
-        metrics, columns=["Metric Type", "Group", "Value"]
-    )
-    report = Report(evaluation_results)
+        accuracy_demographics += [["Accuracy by ethnicity", group, "%.3f" % acc]]
+    acc_demographics_df = pd.DataFrame(accuracy_demographics, columns=["Accuracy type", "Accuracy Type Group", "Accuracy Value"])
+    report = Report(acc_demographics_df)
     report.save_report(config.filepath)
     return report
 
 
+def model_evaluation_equality_of_outcome(data: Data, config: Configuration, model: Model):
+    # Evaluation metrics based on the Success Rate of the model for each group within the sensitive features
+    # Calculate the success rate for each gender group
+    sr_male = y_pred_test[data_test["Gender"] == "Male"].mean()
+    sr_female = y_pred_test[data_test["Gender"] == "Female"].mean()
+    pred_g_mean = data_test.groupby("Gender")["Pred"].mean()
+
+    print("---- SUCCESS RATE BY GENDER----")
+    for g in pred_g_mean.index:
+        print(g, "= %.3f" % pred_g_mean[g])
+    print()
+
+    # Calculate the success rate for each ethnicity group
+    sr_white = y_pred_test[data_test["Ethnicity"] == "White"].mean()
+    sr_black = y_pred_test[data_test["Ethnicity"] == "Black"].mean()
+    sr_hispanic = y_pred_test[data_test["Ethnicity"] == "Hispanic"].mean()
+    sr_asian = y_pred_test[data_test["Ethnicity"] == "Asian"].mean()
+    pred_e_mean = data_test.groupby("Ethnicity")["Pred"].mean()
+
+
+    print("---- SUCCESS RATE BY ETHNICITY----")
+    for e in pred_e_mean.index:
+        print(e, "= %.3f" % pred_e_mean[e])
+        
+
+def model_evaluation_equality_of_opportunity(data: Data, config: Configuration, model: Model):
+    # Evaluation metrics based on the True Positive Rate of the model for each group within the sensitive features
+    
+    
+    
 ############################################################## Bias Mitigation techniques
 
 
@@ -398,8 +399,8 @@ def bias_mitigation_in_process_train(data: Data, config: Configuration, report: 
 ############################################################## Explainability
 
 
-def explain_model_predictions(blackbox_model, X_train, y_test):
-    seed = 4
+def explain_model_predictions(blackbox_model: Model, X_train: Data, y_test: Data, config: Configuration):
+    seed = config.seed
     lime = LimeTabular(blackbox_model, X_train, random_state=seed)
     show(lime.explain_local(X_test[:5], y_test[:5]), 0)
 

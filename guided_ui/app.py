@@ -1,9 +1,11 @@
 # streamlit: page_name = "Main"
 import os
+import ast
 import sys
 import yaml
 import json
 import inspect
+import pandas as pd
 import streamlit as st
 import importlib.util
 from utils import get_pipeline_operations, session_state_params
@@ -20,6 +22,7 @@ pipeline_definitions_folder = os.path.join(
     parent_folder, "framework/library/config/pipeline_definitions.yaml"
 )
 USE_CASES_FOLDER = os.path.join(parent_folder, "framework/library/use_cases")
+TOOLS_CATALOG_FOLDER = os.path.join(parent_folder, "tools_catalog")
 use_cases_list = os.listdir(USE_CASES_FOLDER)
 platform_list = ["local", "dh"]
 
@@ -132,6 +135,7 @@ def show_stage(
         artifacts = aipc_configs["artifacts"]
         data_artifacts = artifacts["data"]
         model_artifacts = artifacts["model"]
+        report_artifacts = artifacts["report"]
         configuration_artifacts = artifacts["configuration"]
 
         if current_step == "Data preparation":
@@ -144,6 +148,7 @@ def show_stage(
                 model_artifacts,
                 data_artifacts,
                 configuration_artifacts,
+                report_artifacts
             )
             # visualize data artifacts
             populate_data_artifacts(data_artifacts)
@@ -157,6 +162,7 @@ def show_stage(
                 model_artifacts,
                 data_artifacts,
                 configuration_artifacts,
+                report_artifacts
             )
         elif current_step == "Operationalisation":
             populate_frames(
@@ -168,6 +174,7 @@ def show_stage(
                 model_artifacts,
                 data_artifacts,
                 configuration_artifacts,
+                report_artifacts
             )
 
 
@@ -180,6 +187,7 @@ def populate_frames(
     model_artifacts,
     data_artifacts,
     configuration_artifacts,
+    report_artifacts
 ):
     with open(pipeline_definitions_folder, "r") as yaml_file:
         pipeline_configs = yaml.safe_load(yaml_file)
@@ -219,8 +227,8 @@ def populate_frames(
             ):
                 cols_oper = st.columns([7, 3])
                 with cols_oper[0]:
-                    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-                        ["Documentation", "Code", "Metadata", "Input", "Output"]
+                    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+                        ["Documentation", "Code", "Metadata", "Input", "Output", "Produced artifact"]
                     )
                     with tab1:
                         st.write("This is the Documentation tab")
@@ -287,6 +295,25 @@ def populate_frames(
                             show_gutter=True,
                             readonly=True,
                         )
+                    with tab6:
+                        import streamlit.components.v1 as components
+                        for output in eval(outputs):
+                            if "report" in output:
+                                print(output["report"])
+                                report = list(filter(lambda x: x["name"] == output["report"], report_artifacts))[0]                            
+                                report_path = report["filepath"]   
+                                report_path = os.path.join(
+                                    USE_CASES_FOLDER,
+                                    current_product,
+                                    "src",
+                                    f"{current_framework}_platform",
+                                    report_path
+                                ) 
+                                if "html" in report_path:
+                                    with open(report_path, encoding="utf8") as report_f:
+                                        report: Text = report_f.read()
+                                        components.html(report, width=1000, height=1200, scrolling=True)
+            
                     if st.button("Run operation", key=f"run_op_{ind}"):
                         run_data_operation(
                             operation,
@@ -300,16 +327,35 @@ def populate_frames(
                     st.write(
                         "The following code is a recommended implementation for this operation, derived from a catalog of open-source tools."
                     )
-                    metadata = st_ace(
-                        value=method_content,
-                        language="json",
-                        theme="xcode",
-                        key=f"suggestion_{ind}",
-                        height=300,
-                        font_size=14,
-                        show_gutter=True,
-                        readonly=True,
-                    )
+                    tools_catalog = pd.read_csv(os.path.join(TOOLS_CATALOG_FOLDER,"tools_principles_catalog.csv"))
+                    code_catalog = tools_catalog[tools_catalog["ai_operation"] == operation["type"]]
+                    print(code_catalog)
+                    for tool in code_catalog.itertuples():
+                        snippet_path = tool.code_snippet_path
+                        toolname = tool.tool
+                        documentation = tool.documentation
+                        file = os.path.join(TOOLS_CATALOG_FOLDER, snippet_path.split(":")[0])
+                        method = snippet_path.split(":")[1]
+                        method_snippet = get_function_source(file, method)
+                        with st.expander(
+                            f"Tool suggestion: {toolname}", expanded=False
+                        ):
+                            st.markdown(
+                                f"""
+                                    <a href="{documentation}" target="_blank">Tool documentation ↗</a>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                            st_ace(
+                                value=method_snippet,
+                                language="json",
+                                theme="xcode",
+                                key=f"suggestion_{ind}_{tool.Index}",
+                                height=300,
+                                font_size=14,
+                                show_gutter=True,
+                                readonly=True,
+                            )
 
 
 def populate_data_artifacts(data_artifacts):
@@ -360,6 +406,17 @@ def load_method_content(
     source_text = inspect.getsource(func)
     return source_text
 
+def get_function_source(file_path, function_name):
+    with open(file_path, "r") as f:
+        source = f.read()
+    tree = ast.parse(source)
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+            start_line = node.lineno - 1
+            end_line = node.end_lineno
+            lines = source.splitlines()
+            return "\n".join(lines[start_line:end_line])
+    return None
 
 def run_data_operation(
     operation,
@@ -424,7 +481,6 @@ def main():
             config_file = os.path.join(USE_CASES_FOLDER, product, "metadata", "aipc_local.yaml")  
             with open(config_file, "r") as yaml_file:
                 aipc_configs = yaml.safe_load(yaml_file)   
-                print(aipc_configs)    
             use_cases_list_names.append(f"{product}: ({aipc_configs['ai_product_name']})")
     current_product_label = st.sidebar.selectbox("AI Products list", use_cases_list_names, index=3)
     current_product = current_product_label.split(": ")[0]

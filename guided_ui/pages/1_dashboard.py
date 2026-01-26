@@ -35,7 +35,7 @@ def show_dashboard(current_product, current_framework):
     with open(pipeline_definitions_folder, "r") as yaml_file:
         pipeline_configs = yaml.safe_load(yaml_file)
 
-    requirements_dimensions = pipeline_configs["requirements_dimensions"]
+    requirements_dimensions = aipc_configs["requirements_dimensions"]
     populate_stages(pipeline_configs)
     for requirement in requirements_dimensions:
         status = read_operations_status(pipeline_configs, aipc_configs, requirement)
@@ -53,17 +53,21 @@ def show_operations_status(pipeline_configs, requirement, status):
                         filter(lambda x: x["operation_type"] == op_type, status)
                     )[0]["passed_operations"]
                     passed = len(declared_operations) > 0
+                    not_active = list(
+                        filter(lambda x: x["operation_type"] == op_type, status)
+                    )[0]["not_active"]
+                    
                     st.markdown(
                         f"""
                             <div style="
                                 margin-left:{j*40}px;
                                 height:50px;
                                 width:{450 - j*40}px;
-                                background-color:{'#e6f4ea' if passed else '#FFE5E5'};
+                                background-color:{'#e6f4ea' if passed else '#d3d3d3' if not_active else '#FFE5E5'};
                                 border-radius:10px;
                                 padding:10px;
                             ">
-                                {'; -  '.join(declared_operations) if passed else "✗"}
+                                {'; -  '.join(declared_operations) if passed  else '🚫' if not_active else "✗"}
                             </div>
                             """,
                         unsafe_allow_html=True,
@@ -72,6 +76,7 @@ def show_operations_status(pipeline_configs, requirement, status):
 
 def read_operations_status(pipeline_configs, aipc_configs, requirement):
     status = []
+    not_active_ops = aipc_configs["excluded_operations"]
     for i, stage in enumerate(pipeline_configs["ai_operations"]):
         for j, operation in enumerate(stage["operations"]):
             op_type = list(operation.keys())[0]
@@ -84,6 +89,7 @@ def read_operations_status(pipeline_configs, aipc_configs, requirement):
                 {
                     "operation_type": op_type,
                     "passed_operations": passed_operations,
+                    "not_active": op_type in not_active_ops,
                 }
             )
     return status

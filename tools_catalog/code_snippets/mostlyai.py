@@ -1,5 +1,6 @@
 import pandas as pd
 from mostlyai.sdk import MostlyAI
+from library.src.artifact_types import Data, Configuration
 
 def generate_synthetic_data(data: Data):
     original_df = data.load_dataset()

@@ -1,4 +1,5 @@
 from ydata_profiling import ProfileReport
+from library.src.artifact_types import Data, Configuration, Report
 
 """
 The profiling offers comprehensive insights into various types of data, including tabular, time-series and text data.

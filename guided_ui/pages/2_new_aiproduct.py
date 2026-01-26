@@ -6,7 +6,7 @@ import streamlit as st
 from utils import populate_stages
 
 st.set_page_config(layout="wide", page_title="New AI Product")  # , page_icon="📊"
-st.title("Generate a new AI Product")
+st.title("Generate a new AI Product: guide through the steps")
 # st.sidebar.header("DataFrame Demo")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
