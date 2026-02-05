@@ -19,7 +19,7 @@ from holisticai.bias.metrics import (
 from holisticai.bias.mitigation import EqualizedOdds
 
 
-def model_deployment(config: Configuration):
+def model_deploy(config: Configuration):
     model_name = config.name
     model_path = config.path
 
@@ -27,6 +27,8 @@ def model_deployment(config: Configuration):
     model = CustomModel(model_name, model_path)
     KFServer(workers=1).start([model])
 
+def model_monitor():
+    pass
 
 def post_processing_fairness(prediction):
     """

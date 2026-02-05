@@ -8,6 +8,7 @@ import inspect
 import pandas as pd
 import streamlit as st
 import importlib.util
+from pathlib import Path
 from utils import get_pipeline_operations, session_state_params
 from streamlit_ace import st_ace
 from streamlit_monaco import st_monaco
@@ -213,6 +214,17 @@ def populate_frames(
             """,
             unsafe_allow_html=True
         )
+    docs_files_folder = os.path.join(
+        USE_CASES_FOLDER, current_product, "docs"
+    )
+    if "model_documentation" in selected_data_operation:                
+        md_path = Path(os.path.join(docs_files_folder, "ModelCard.md"))
+        md_content = md_path.read_text(encoding="utf-8")
+        st.markdown(md_content)
+    if "data_documentation" in selected_data_operation:                
+        md_path = Path(os.path.join(docs_files_folder, "Datasheet.md"))
+        md_content = md_path.read_text(encoding="utf-8")
+        st.markdown(md_content)
     for ind, operation in enumerate(operations):
         if operation["type"] == selected_data_operation:
             operation_id = operation["id"]
@@ -479,6 +491,8 @@ def main():
     for product in use_cases_list:
         if "metadata" in os.listdir(os.path.join(USE_CASES_FOLDER, product)):
             config_file = os.path.join(USE_CASES_FOLDER, product, "metadata", "aipc_local.yaml")  
+            yaml_path = Path(config_file)
+            yaml_text = yaml_path.read_text()
             with open(config_file, "r") as yaml_file:
                 aipc_configs = yaml.safe_load(yaml_file)   
             use_cases_list_names.append(f"{product}: ({aipc_configs['ai_product_name']})")
@@ -504,8 +518,20 @@ def main():
             default_index=0,
             orientation="vertical",
         )
-    show_stage(current_step, selected_aspect, current_product, current_framework)
-
+    if "view" not in st.session_state:
+        st.session_state.view = "Operations Visualisation"
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Operations Visualisation"):
+            st.session_state.view = "Operations Visualisation"
+    with col2:
+        if st.button("Declarative Configuration"):
+            st.session_state.view = "Declarative Configuration"
+    if st.session_state.view == "Operations Visualisation":
+        show_stage(current_step, selected_aspect, current_product, current_framework)
+    else:
+        st.code(yaml_text, language="yaml")
+        
 
 if __name__ == "__main__":
     main()

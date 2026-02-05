@@ -61,13 +61,14 @@ def show_operations_status(pipeline_configs, requirement, status):
                         f"""
                             <div style="
                                 margin-left:{j*40}px;
-                                height:50px;
+                                height:60px;
+                                overflow-y:auto;
                                 width:{450 - j*40}px;
                                 background-color:{'#e6f4ea' if passed else '#d3d3d3' if not_active else '#FFE5E5'};
                                 border-radius:10px;
                                 padding:10px;
                             ">
-                                {'; -  '.join(declared_operations) if passed  else '🚫' if not_active else "✗"}
+                                {';</br> '.join(declared_operations) if passed  else '🚫' if not_active else "✗"}
                             </div>
                             """,
                         unsafe_allow_html=True,

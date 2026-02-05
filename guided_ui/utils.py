@@ -58,6 +58,7 @@ def populate_stages(pipeline_configs, createview=False):
                     <div style="
                         margin-left:{j*40}px;
                         height:50px;
+                        overflow-y:auto;
                         width:{450 - j*40}px;
                         background-color:#dbeafe;
                         border-radius:10px;

@@ -6,7 +6,13 @@ streamlit-monaco
 streamlit_elements
 pyyaml
 
+# MCP RAG server
+langchain
+langchain_mcp_adapters
+langchain_openai
+#jax[cuda12]"==0.4.28"
 
 ## library
+gdown
 uvicorn
 fastapi

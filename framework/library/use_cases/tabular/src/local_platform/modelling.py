@@ -11,7 +11,7 @@ from holisticai.bias.metrics import (
 # from interpret.blackbox import LimeTabular
 # from interpret import show
 
-from library.src.artifact_types import Data, Configuration, Report, Model
+from library.src.artifact_types import Data, Configuration, Report, Model, Status
 from library.use_cases.tabular.src.local_platform.utils import *
 
 from scipy.stats import uniform
@@ -35,6 +35,7 @@ FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
 MODEL_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "model")
 REPORT_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "report")
+STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
 
 #################################################### Feature Engineering
 
@@ -311,7 +312,7 @@ def model_evaluation_equality_of_opportunity(data: Data, config: Configuration, 
     
 ############# Model Validation
 
-def model_validation_baseline(report: Report, config: Configuration):
+def model_validation_baseline(report: Report, config: Configuration, status: Status):
     pass
 
 def model_validation_fairness(report: Report, config: Configuration):
@@ -484,9 +485,11 @@ if __name__ == "__main__":
     report_accuracy = Report(filepath=report_accuracy_filepath)
     report_filepath = os.path.join(REPORT_ARTIFACTS_PATH, "report_accuracy_demographics2.csv")
     report = Report(filepath=report_filepath)
+    report_validation_model = Report(filepath=os.path.join(REPORT_ARTIFACTS_PATH, "model_performance_metrics_demographic_report.csv"))
+    status = Status(status.status_key, os.path.join(STATUS_ARTIFACTS_PATH, "model_validation.json"))
     
     #train_model(data, config_model)
     #model_evaluation_accuracy(data_testing, config_model, model, report)
     #model_evaluation_accuracy_mlflow(data_testing, config_metrics_report, model, report_accuracy)
-    model_evaluation_accuracy_demographic_groups(data_testing, config_metrics_report, model, report)
-    
+    #model_evaluation_accuracy_demographic_groups(data_testing, config_metrics_report, model, report)
+    #model_validation_baseline(report, config: Configuration, status: Status)
