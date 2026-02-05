@@ -198,11 +198,10 @@ operations:
       framework: local
       spec:
         path: modelling.py
-        method_name: model_validation_accuracy
+        method_name: model_validation_baseline
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
-          - model: model_fairness_aware
+          - report: model_performance_metrics_demographic_report
           - configuration: model_train_fairness_aware
         outputs:
           - status: model_validation_baseline
@@ -259,7 +258,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - 
-        outputs:
+        outputs: data_drift_detection
           - 
 
 # TODO system monitoring (telemetry, prometheus, grafana)
@@ -350,13 +349,9 @@ artifacts:
         statistical_parity:
           min_allowed: -0.1
           max_allowed: 0.1
-          strict_min_allowed: -0.05
-          strict_max_allowed: 0.05
         equal_opportunity_difference:
           min_allowed: -0.1
           max_allowed: 0.1
-          strict_min_allowed: -0.05
-          strict_max_allowed: 0.05      
     - name: model_inferenceservice_endpoint
       endpoint: "http://localhost:8080/v2/models/hiring-sklearn/versions/v0.1.0/infer"
     - name: constraints_file

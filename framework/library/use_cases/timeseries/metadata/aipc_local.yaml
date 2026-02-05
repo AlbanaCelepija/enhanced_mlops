@@ -178,4 +178,11 @@ artifacts:
     - name: model_card_hiring
       filepath: cards/model_card.md
 
-
+requirements_dimensions:
+  - baseline
+  - fairness
+  - robustness
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring
