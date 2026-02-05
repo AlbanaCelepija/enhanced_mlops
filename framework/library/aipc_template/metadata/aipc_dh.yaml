@@ -153,4 +153,12 @@ artifacts:
       port: 1234
       namespace: kserve-test
 
+requirements_dimensions:
+  - baseline
+  - fairness
+  - robustness
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring
 
