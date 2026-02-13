@@ -98,7 +98,6 @@ class Status:
     """
 
     def __init__(self, status_key, status_file):
-        # TODO load status file
         self.status_key = status_key
         self.status_file = status_file
 

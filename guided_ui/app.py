@@ -1,5 +1,6 @@
 # streamlit: page_name = "Main"
 import os
+import re
 import ast
 import sys
 import yaml
@@ -178,6 +179,50 @@ def show_stage(
                 report_artifacts
             )
 
+def show_artifacts(    current_step: str = "Data preparation",
+    selected_aspect: str = "Baseline",
+    current_product: str = "tabular",
+    current_framework: str = "local",
+    ):
+    product_config_file = os.path.join(
+        USE_CASES_FOLDER, current_product, "metadata", f"aipc_{current_framework}.yaml"
+    )
+    if not os.path.exists(product_config_file):
+        st.error(
+            f"Configuration file for {current_product} does not exist for {current_framework} platform. Please, configure the AI product properly",
+            icon="🚨",
+        )
+        return
+    with open(product_config_file, "r") as yaml_file:
+        aipc_configs = yaml.safe_load(yaml_file)
+        # artifacts
+        artifacts = aipc_configs["artifacts"]
+        data_artifacts = artifacts["data"]
+        model_artifacts = artifacts["model"]
+        report_artifacts = artifacts["report"]
+        configuration_artifacts = artifacts["configuration"]
+        # visualize data artifacts
+        with st.expander(
+                f"Data Artifacts", expanded=True
+            ):
+            populate_data_artifacts(data_artifacts)
+        with st.expander(
+                f"Model Artifacts", expanded=False
+            ):
+            populate_artifacts(model_artifacts)
+        with st.expander(
+                f"Report Artifacts", expanded=False
+            ):
+            populate_artifacts(report_artifacts)
+        with st.expander(
+                f"Configuration Artifacts", expanded=False
+            ):
+            populate_artifacts(configuration_artifacts)
+        
+                 
+def extract_section_by_title(md_text, title):
+    pattern = rf"##\s+{re.escape(title)}\n(.*?)(?=\n##\s|\Z)"
+    return re.search(pattern, md_text, re.S).group(1).strip()
 
 def populate_frames(
     operations,
@@ -217,6 +262,7 @@ def populate_frames(
     docs_files_folder = os.path.join(
         USE_CASES_FOLDER, current_product, "docs"
     )
+    md_content = ""
     if "model_documentation" in selected_data_operation:                
         md_path = Path(os.path.join(docs_files_folder, "ModelCard.md"))
         md_content = md_path.read_text(encoding="utf-8")
@@ -244,9 +290,14 @@ def populate_frames(
                     )
                     with tab1:
                         st.write("This is the Documentation tab")
-                        code = st.text_area(
-                            "Documentation", key=f"doc_{ind}", value=operation["name"]
+                        #val_doc_op = extract_section_by_title(md_content, "Training Procedure")
+                        #print(val_doc_op)
+                        documentation = st.text_area(
+                            "Documentation", key=f"doc_{ind}", value=f"{operation['name']}" #
                         )
+                        #if st.button("Save"):
+                        #    md_text = md_text.replace(section_text, documentation)
+                        #    md_path.write_text(md_text, encoding="utf-8")
                     with tab2:
                         st.write("This is the Code tab")
                         method_content = load_method_content(
@@ -397,8 +448,27 @@ def populate_data_artifacts(data_artifacts):
                     """,
                     unsafe_allow_html=True
                 )
-                #st.write(artifact)
 
+def populate_artifacts(artifacts):
+    with st.container():
+        for artifact in artifacts:
+            content = ""
+            for k, v in artifact.items():
+                content += f"<strong>{k}:</strong> {v}<br>"
+            st.markdown(
+                f"""
+                <div style="
+                    border: 2px solid #d1d5db;
+                    border-radius: 10px;
+                    padding: 16px;
+                    background-color: #f3f4f6;
+                    margin-bottom: 16px;
+                ">
+                    {content}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 def load_method_content(
     method_name,
@@ -520,15 +590,21 @@ def main():
         )
     if "view" not in st.session_state:
         st.session_state.view = "Operations Visualisation"
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("Operations Visualisation"):
             st.session_state.view = "Operations Visualisation"
     with col2:
-        if st.button("Declarative Configuration"):
+        if st.button("Declarative Configuration Visualisation"):
             st.session_state.view = "Declarative Configuration"
+    with col3:
+        if st.button("Artifacts Visualisation"):
+            st.session_state.view = "Artifacts Visualisation"
+            
     if st.session_state.view == "Operations Visualisation":
         show_stage(current_step, selected_aspect, current_product, current_framework)
+    elif st.session_state.view == "Artifacts Visualisation":
+        show_artifacts(current_step, selected_aspect, current_product, current_framework)
     else:
         st.code(yaml_text, language="yaml")
         

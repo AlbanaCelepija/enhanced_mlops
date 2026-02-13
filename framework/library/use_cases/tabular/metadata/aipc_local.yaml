@@ -371,11 +371,11 @@ artifacts:
       filepath: model_eval_EOpportunity_report.csv
   status:
     - name: model_validation_baseline
-      filepath: model_validation.json
-      key: model_validation_baseline
+      status_file: model_validation.json
+      status_key: model_validation_baseline
     - name: model_validation_fairness
-      filepath: model_validation.json
-      key: model_validation_fairness
+      status_file: model_validation.json
+      status_key: model_validation_fairness
   documentation:
     - name: data_card_hiring
       filepath: cards/data_card.md

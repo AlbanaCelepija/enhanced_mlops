@@ -44,6 +44,8 @@ Inside the `framework` directory, to install the dependencies and activate the v
 uv venv .venv
 . ./.venv/bin/activate # or source ./.venv/bin/activate
 uv pip install -e .
+
+python3 -m pip install --upgrade build
 ```
 
 Test that you have Python 3.11.9 installed in your new `uv` environment:
@@ -56,6 +58,7 @@ This command will:
 - Create a virtual environment with the Python version specified in `.python-version` using `uv`
 - Activate the virtual environment
 - Install all dependencies from `pyproject.toml`
+- Generate distribution packages
 
 ## 3. Environment Configuration
 

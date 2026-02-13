@@ -4,6 +4,16 @@ Datasheet in the format of "Datasheets for datasets" as described in
 
 # Hiring Dataset
 
+#  Table of Contents
+
+- [Motivation](#motivation)
+- [Dataset Composition](#composition)
+- [Collection Process](#collection-process)
+- [Data Preprocessing](#data-preprocessing)
+- [Uses](#uses)
+- [Data Distribution](#distribution)
+- [Dataset Maintenance](#maintenance)
+
 
 ## Motivation
 
@@ -63,150 +73,7 @@ Datasheet in the format of "Datasheets for datasets" as described in
 4. **What data does each instance consist of?** *(``Raw'' data (e.g., unprocessed text or images)or features? In either case, please provide a description.)*
 
     ```
-    m--{capture.mcd}--{capture.mct}--{capture.sid}--pilot--ProjectGoliath--iPhone
-    ├── Hands
-    │   ├── {side}
-    │   │   ├── calib.txt
-    │   │   ├── depth.xyz
-    │   │   ├── depth.zip
-    │   │   ├── keypoints_2d.zip
-    │   │   ├── mano.zip
-    │   │   ├── rgb.mov
-    │   │   ├── rgb.zip
-    │   │   └── segmentations_fgbg.zip
-    │   ├── camera_calibration.txt
-    │   ├── frame_list.txt
-    │   ├── frame_list_test.txt
-    │   ├── frame_list_train.txt
-    │   └── visualization.mp4
-    ├── Heads
-    │   ├── {segment}
-    │   │   ├── calib.txt
-    │   │   ├── depth.mov
-    │   │   ├── depth.zip
-    │   │   ├── keypoints_2d.zip
-    │   │   ├── rgb.mov
-    │   │   ├── rgb.zip
-    │   │   └── segmentations_fgbg.zip
-    │   ├── camera_calibration.txt
-    │   ├── frame_list.txt
-    │   └── visualization.mp4
-    └── {cloth}
-        ├── calib.txt
-        ├── depth.xyz
-        ├── front.HEIC
-        ├── handheld.mov
-        ├── side.HEIC
-        └── staticphone.mov
-
-    m--{capture.mcd}--{capture.mct}--{capture.sid}--pilot--ProjectGoliath--Head
-    ├── camera_calibration.json
-    ├── frame_segments_list.csv
-    ├── frame_splits_list.csv
-    ├── head_pose
-    │   └── head_pose.zip
-    ├── image
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    ├── keypoints_3d
-    │   └── keypoints_3d.zip
-    ├── kinematic_tracking
-    │   ├── registration_vertices.zip
-    │   ├── registration_vertices_mean.npy
-    │   ├── registration_vertices_variance.txt
-    │   └── template_mesh.obj
-    ├── lights
-    │   ├── light_pattern_metadata.json
-    │   └── light_pattern_per_frame.json
-    ├── model
-    │   ├── config.yml
-    │   └── model.pt
-    ├── per_view_background
-    │   └── per_view_background.zip
-    ├── scan_mesh
-    │   └── scan_mesh.zip
-    ├── segmentation_parts
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    └── uv_image
-        ├── color.zip
-        ├── color_mean.png
-        └── color_variance.txt
-
-    m--{capture.mcd}--{capture.mct}--{capture.sid}--pilot--ProjectGoliath--Hands--{capture.side}
-    ├── camera_calibration.json
-    ├── frame_segments_list.csv
-    ├── frame_splits_list.csv
-    ├── image
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    ├── keypoints_3d
-    │   └── keypoints_3d.zip
-    ├── kinematic_tracking
-    │   ├── pose.zip
-    │   ├── registration_vertices.zip
-    │   ├── skeleton_scales.txt
-    │   ├── template_mesh.ply
-    │   └── template_mesh_unscaled.ply
-    ├── lights
-    │   ├── light_pattern_metadata.json
-    │   └── light_pattern_per_frame.json
-    ├── per_view_background
-    │   └── per_view_background.zip
-    ├── scan_mesh
-    │   └── scan_mesh.zip
-    ├── segmentation_fgbg
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    ├── segmentation_parts
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    └── uv_image
-        ├── ambient_occlusion.zip
-        └── ambient_occlusion_mean.png
-
-    s--{capture.mcd}--{capture.mct}--{capture.sid}--pilot--ProjectGoliath--{capture.clothes}Body
-    ├── camera_calibration.json
-    ├── config.yml
-    ├── floor_transformation.txt
-    ├── frame_segments_list.csv
-    ├── frame_splits_list.csv
-    ├── image
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    ├── keypoints_3d
-    │   └── keypoints_3d.zip
-    ├── kinematic_tracking
-    │   ├── pose.zip
-    │   ├── registration_vertices.zip
-    │   ├── skeleton_scales.txt
-    │   └── template_mesh.ply
-    ├── scan_mesh
-    │   └── scan_mesh.zip
-    ├── segmentation_parts
-    │   ├── cam{cam_name_01}.zip
-    │   ├── cam{cam_name_02}.zip
-    │   ├── ...
-    │   └── cam{cam_name_N}.zip
-    └── uv_image
-        ├── ambient_occlusion.zip
-        ├── ambient_occlusion_mean.png
-        └── color_mean.png
-    ```
-
-
+  
     There are four subjects with different `capture.sid`. Each of them has six different folders corresponding to two full body captures with `{capture.clothes}` being Clothed or Minimal, two hand captures with `{capture.side}` being left or right, one head capture, and one folder corresponding to iPhone data.
 
     The iPhone data folder contains four subfolders, corresponding to head, hand, minimal clothing and regular clothing:
@@ -219,7 +86,7 @@ Datasheet in the format of "Datasheets for datasets" as described in
 
 5. **Is there a label or target associated with each instance? If so, please provide a description.**
 
-    No.
+    Yes, each data instance is associated with a 'label' feature.
 
 
 6. **Is any information missing from individual instances?** *(If so, please provide a description, explaining why this information is missing (e.g., because it was unavailable). This does not include intentionally removed information, but might include, e.g., redacted text.)*
@@ -367,7 +234,7 @@ Datasheet in the format of "Datasheets for datasets" as described in
 
 
 
-## Preprocessing/cleaning/labeling
+## Data preprocessing
 
 
 1. **Was any preprocessing/cleaning/labeling of the data done (e.g., discretization or bucketing, tokenization, part-of-speech tagging, SIFT feature extraction, removal of instances, processing of missing values)?** *(If so, please provide a description. If not, you may skip the remainder of the questions in this section.)*

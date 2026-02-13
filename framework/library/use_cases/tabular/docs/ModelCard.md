@@ -1,13 +1,13 @@
-# Model Card for hiring classificator
+# Model Card for hiring classifier
 
 <!-- Provide a quick summary of what the model is/does. [Optional] -->
-Model used to automatically classificate job applicants
+Model used to automatically classify job applicants
 This is a sklearn model which aims to classify whether or not an individual should be hired.
 
 
 #  Table of Contents
 
-- [Model Card for hiring classificator](#model-card-for--model_id-)
+- [Model Card for hiring classifier](#model-card-for--model_id-)
 - [Table of Contents](#table-of-contents)
 - [Table of Contents](#table-of-contents-1)
 - [Model Details](#model-details)

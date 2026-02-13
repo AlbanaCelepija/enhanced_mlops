@@ -10,3 +10,6 @@ format:
 
 run_api:
 	uv run python -m library.api.api --port 8000 --host 0.0.0.0
+
+build_library:
+	python3 -m pip install --upgrade build

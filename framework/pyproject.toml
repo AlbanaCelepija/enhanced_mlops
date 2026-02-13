@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "library"
+name = "temlops"
 dynamic = ["version"]
-description = ''
+description = 'Trustworthy Enhanced MLOps'
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
