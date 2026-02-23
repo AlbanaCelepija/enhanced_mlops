@@ -11,35 +11,36 @@ operations:
   - type: data_profiling  
     stage: data_preparation
     id: data_profiling
-    name: Evaluate whether the target production data have drifted from the training data.
+    name: Generate EDA profiling report
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: data_preparation.py
-        method_name: drift_detection
+        method_name: data_drift_detection
         requirements: requirements.txt
         inputs:
-          - configuration:  constraints_file    # range of values, thresholds    
+          - data:  hiring_data_original 
         outputs:
-          - report: data_report
+          - report: data_profiling_report
 
   - type: data_validation  
     stage: data_preparation
     id: data_drift_detection
-    name: Evaluate if target production data are drifted from training data 
+    name: Evaluate whether the target production data are drifted from training data 
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec: 
         path: data_preparation.py
-        method_name: drift_detection
+        method_name: data_drift_status
         requirements: requirements.txt
         inputs:
-          - configuration:         
+          - data: hiring_data_training
+          - data: hiring_data_production
+          - configuration: constraints_file    # range of values, thresholds       
         outputs:
-          -   
-
+          -  status: data_drift_status
 ####################################################### Data Preparation Stage
   - type: data_preprocessing  
     stage: data_preparation

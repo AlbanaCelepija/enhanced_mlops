@@ -1,17 +1,18 @@
+import os
+import pickle
+import logging
 from pickle import dump
 
-import holisticai
 from holisticai.bias.metrics import (
     disparate_impact,
     statistical_parity,
     average_odds_diff,
 )
-from interpret.blackbox import LimeTabular
-from interpret import show
+# from interpret.blackbox import LimeTabular
+# from interpret import show
 
-from artifact_types import Data, Configuration, Report, Model
-from fairness.holisticAI.src.utils import *
-from fairness.holisticAI.src.data_preparation import *
+from library.src.artifact_types import Data, Configuration, Report, Model, Status
+from library.use_cases.tabular.src.local_platform.utils import *
 
 from scipy.stats import uniform
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
@@ -25,11 +26,54 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-import mlflow
-import mlflow.sklearn
+# import mlflow
+# import mlflow.sklearn
+
+logging.basicConfig(level=logging.INFO)
+
+FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
+DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
+MODEL_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "model")
+REPORT_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "report")
+STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
+
+#################################################### Feature Engineering
 
 
-def train_model(data: Data, config: Configuration):
+def permutation_feature_importance(data_test: Data, model: Model):
+    # Function to permute a specific feature column in the dataset
+    def permute_X(X, j):
+        Xj = X.copy()
+        Xj[j] = Xj[j].sample(frac=1).values  # Shuffle feature values
+        return Xj
+
+    X_test = data_test.get_dataset()
+    # Define parameters
+    np.random.seed(10)
+    n_features = len(X_test.columns)
+    n_iter = 10
+
+    # Initialize arrays to store accuracy and disparate impact results
+    accs = np.zeros((n_iter, n_features))
+    dis = np.zeros((n_iter, n_features))
+
+    # Iterate over features and perform permutation testing
+    for j in tqdm(range(n_features)):
+        for i in range(n_iter):
+            # Shuffle feature j and make predictions
+            X_test_permuted = permute_X(X_test, str(j))
+            y_pred_test_permuted = model.predict(X_test_permuted)
+
+            # Compute accuracy and disparate impact and store results
+            accs[i, j] = accuracy_score(y_test, y_pred_test_permuted)
+            dis[i, j] = disparate_impact(
+                group_a_test, group_b_test, y_pred_test_permuted
+            )
+
+
+#################################################### Model Training ####################################################
+
+def train_model_mlflow(data: Data, config: Configuration):
     """ """
     data = data.get_dataset()
     # Split the data into training and testing sets (70% training, 30% testing)
@@ -51,15 +95,16 @@ def train_model(data: Data, config: Configuration):
         model = RidgeClassifier(random_state=config.random_state)
         model.fit(X_train, y_train)
 
-        with open(config.model_filepath, "wb") as model_file:
+        model_output_path = os.path.join(MODEL_ARTIFACTS_PATH, config.model_filepath)
+        with open(model_output_path, "wb") as model_file:
             dump(model, model_file, pickle.HIGHEST_PROTOCOL)
 
         # Make predictions on the test set
         y_pred_test = model.predict(X_test)
 
         # Define the groupings for fairness analysis (Black and White) in the test set
-        group_a_test = dem_test["Ethnicity"] == "Black"
-        group_b_test = dem_test["Ethnicity"] == "White"
+        group_a_test = dem_test["nationality"] == "Dutch"
+        group_b_test = dem_test["nationality"] == "Belgian"
 
         metrics_rw = get_metrics_classifier(
             group_a_test, group_b_test, y_pred_test, y_test
@@ -85,16 +130,41 @@ def train_model(data: Data, config: Configuration):
         data_test["Pred"] = y_pred_test
         # TODO generate report to return from this method
 
+def train_model(data: Data, config: Configuration):
+    """ """
+    data = data.load_dataset()
+    # Split the data into training and testing sets (70% training, 30% testing)
+    data_train, data_test = train_test_split(
+        data, test_size=config.test_size, random_state=config.random_state
+    )
+    artifact_data_train = Data(os.path.join(DATA_ARTIFACTS_PATH, "data_training.csv"))
+    artifact_data_train.log_dataset(data_train)
+    artifact_data_test = Data(os.path.join(DATA_ARTIFACTS_PATH, "data_testing.csv"))
+    artifact_data_test.log_dataset(data_test)
+    # Get the feature matrix (X), target labels (y), and demographic data for both sets
+    X_train, y_train, dem_train = split_data_from_df(data_train, config.sensitive_features)
+    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+
+    # Define the model (RidgeClassifier) and train it on the training data
+    model = RidgeClassifier(random_state=config.random_state)
+    model.fit(X_train, y_train)
+    
+    model_output_path = os.path.join(MODEL_ARTIFACTS_PATH, config.model_filepath)
+    with open(model_output_path, "wb") as model_file:
+        dump(model, model_file, pickle.HIGHEST_PROTOCOL)
+
 
 def hyperparameters_optimization(data: Data, config: Configuration):
+    data = data.get_dataset()
+    X_train, X_test, y_train, y_test = train_test_split(
+        data, test_size=config.test_size, random_state=config.random_state
+    )
     lr = ElasticNet()
-
     # Define distribution to pick parameter values from
     distributions = dict(
         alpha=uniform(loc=0, scale=10),  # sample alpha uniformly from [-5.0, 5.0]
         l1_ratio=uniform(),  # sample l1_ratio uniformlyfrom [0, 1.0]
     )
-
     # Initialize random search instance
     clf = RandomizedSearchCV(
         estimator=lr,
@@ -106,7 +176,6 @@ def hyperparameters_optimization(data: Data, config: Configuration):
         # Try 100 samples. Note that MLflow only logs the top 5 runs.
         n_iter=100,
     )
-
     # Start a parent run
     with mlflow.start_run(run_name="hyperparameter-tuning"):
         search = clf.fit(X_train, y_train)
@@ -125,98 +194,130 @@ def hyperparameters_optimization(data: Data, config: Configuration):
 
 ############################################################## Evaluations - Performance metrics - Accuracy
 
+def model_evaluation_accuracy(
+    data: Data, config: Configuration, model: Model, report: Report
+):
+    model = model.load_model()
+    # prepare a validation dataset for prediction and predict
+    data_test = data.load_dataset()  
+    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+    y_pred_test = model.predict(X_test)
 
-def plot_cm(y_true, y_pred, labels=[1, 0], display_labels=[1, 0], ax=None):
-    """
-    Plots a single confusion matrix with annotations
-    """
-    cm = confusion_matrix(y_true, y_pred, labels=labels)  # Compute confusion matrix
-
-    if ax is None:
-        fig, ax = plt.subplots(
-            figsize=(4, 3)
-        )  # Create new figure if no axis is provided
-
-    # Create heatmap for confusion matrix
-    sns.heatmap(
-        cm,
-        annot=True,
-        fmt="g",
-        cmap="viridis",
-        cbar=False,
-        xticklabels=display_labels,
-        yticklabels=display_labels,
-        square=True,
-        linewidths=2,
-        linecolor="black",
-        ax=ax,
-        annot_kws={"size": 14},
+    # Calculate the accuracy of the model on the test set
+    acc = accuracy_score(y_test, y_pred_test)
+    evaluation_metric = pd.DataFrame(
+        columns=["Metric", "Value", "Reference"], data=[["Accuracy", acc, "1"]]
     )
-
-    # Label and format axes
-    ax.set_xlabel("Predicted Label", fontsize=12, fontweight="bold")
-    ax.set_ylabel("True Label", fontsize=12, fontweight="bold")
-    ax.set_xticklabels(display_labels, fontsize=11)
-    ax.set_yticklabels(display_labels, fontsize=11)
-
-    return cm  # Return confusion matrix
+    eval_acc_metric_report = Report(report.filepath).save_report(evaluation_metric)
+    return eval_acc_metric_report
 
 
-def plot_confusion_matrices(groups, data_test, category, y_test, y_pred_test):
-    """
-    Plots confusion matrices for each group in a given category.
-    """
-    num_groups = len(groups) + 1  # Number of groups to display
-    fig, axes = plt.subplots(
-        1, num_groups, figsize=(5 * num_groups, 4)
-    )  # Create subplot grid
-
-    # Plot confusion matrix for overall data
-    cm = plot_cm(y_test, y_pred_test, ax=axes[0])
-    axes[0].set_title("All", fontsize=14, fontweight="bold")
-
-    # Plot confusion matrices for each group in the dataset
-    cm_dict = {"All": cm}  # Store overall confusion matrix
-    for i, group in enumerate(groups):
-        ax = axes[i + 1]  # Get axis for group
-        subset = data_test[data_test[category] == group]  # Filter data for group
-        cm = plot_cm(
-            subset["Label"], subset["Pred"], ax=ax
-        )  # Plot confusion matrix for group
-        cm_dict[group] = cm  # Store confusion matrix for group
-        ax.set_title(group, fontsize=14, fontweight="bold")
-
-    plt.tight_layout()  # Adjust layout
-    plt.show()  # Display plot
-    return cm_dict  # Return dictionary of confusion matrices for each group
+############## Evaluations - Performance and Fairness evaluation metrics
 
 
-def calculate_tpr(cms):
-    """
-    Calculates True Positive Rates (TPR) for each group,
-    given a set of confusion matrices.
-    """
-    tprs = {g: cm[0, 0] / cm[0, :].sum() for g, cm in cms.items()}  # Calculate TPR
-    return tprs  # Return dictionary of TPRs
+def model_evaluation_accuracy_simple(
+    data: Data, config: Configuration, model: Model, metrics_baseline_report: Report
+) -> Report:
+    
+    model = model.load_model()
+    data_test = data.load_dataset()
+    # Get the feature matrix (X), target labels (y), and demographic data
+    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+    y_pred_test = model.predict(X_test)
 
+    # Define the groupings for fairness analysis (Black and White) in the test set
+    group_a_test = dem_test["nationality"] == "Dutch"
+    group_b_test = dem_test["nationality"] == "Belgian"
 
-############################################################## Accuracy and fairness evaluation metrics
+    metrics_rw = get_metrics_classifier(
+        group_a_test, group_b_test, y_pred_test, y_test, "Dutch vs Belgians"
+    )
+    metrics_baseline_report.save_report(metrics_rw)     
+    return metrics_baseline_report  
+    
 
-
-def model_evaluation(data: Data, config: Configuration, model: Model):
-    model_name = model.name
-    model_version = model.vesion
-
-    # Load the model from the Model Registry
-    model_uri = f"models:/{model_name}/{model_version}"
-    model = mlflow.sklearn.load_model(f"models:/{model_name}/{model_version}")
+def model_evaluation_accuracy_demographic_groups(
+    data: Data, config: Configuration, model: Model, report: Report
+) -> Report:
+    accuracy_demographics = []
+    model = model.load_model()
 
     # prepare a validation dataset for prediction and predict
-    data = data.get_dataset()
-    y_pred_new = model.predict(data)
-    # TODO compare metrics and generate report (csv/json)
+    data_test = data.load_dataset()  
+    # Get the feature matrix (X), target labels (y), and demographic data
+    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+    y_pred_test = model.predict(X_test)
+    
+    logging.info("---- OVERALL ACCURACY  ----")
+    # Calculate the accuracy of the model on the test set
+    acc = accuracy_score(y_test, y_pred_test)
+    accuracy_demographics = [["Overall Accuracy", "All", "%.3f" % acc]]
+
+    logging.info("---- ACCURACY BY GENDER ----")    
+    # Calculate accuracy for each gender group
+    dem_test = dem_test.reset_index(drop=True)
+    for group in dem_test["gender"].unique():
+        # Get the indices of the samples belonging to the current group
+        idx_group = dem_test[dem_test["gender"] == group].index
+        if group is None:
+            continue
+        # Calculate the accuracy for the current group
+        acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
+        accuracy_demographics += [["Accuracy by gender", group, "%.3f" % acc]]
+
+    logging.info("---- ACCURACY BY NATIONALITY ----")
+    # Calculate accuracy for each ethnicity group
+    for group in dem_test["nationality"].unique():
+        # Get the indices of the samples belonging to the current group
+        idx_group = dem_test[dem_test["nationality"] == group].index
+        if group is None:
+            continue
+        # Calculate the accuracy for the current group
+        acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
+        accuracy_demographics += [["Accuracy by ethnicity", group, "%.3f" % acc]]
+    acc_demographics_df = pd.DataFrame(accuracy_demographics, columns=["Accuracy type", "Accuracy Type Group", "Accuracy Value"])
+    report.save_report(acc_demographics_df)
+    return report
 
 
+def model_evaluation_equality_of_outcome(data: Data, config: Configuration, model: Model):
+    # Evaluation metrics based on the Success Rate of the model for each group within the sensitive features
+    # Calculate the success rate for each gender group
+    sr_male = y_pred_test[data_test["Gender"] == "Male"].mean()
+    sr_female = y_pred_test[data_test["Gender"] == "Female"].mean()
+    pred_g_mean = data_test.groupby("Gender")["Pred"].mean()
+
+    print("---- SUCCESS RATE BY GENDER----")
+    for g in pred_g_mean.index:
+        print(g, "= %.3f" % pred_g_mean[g])
+    print()
+
+    # Calculate the success rate for each ethnicity group
+    sr_white = y_pred_test[data_test["Ethnicity"] == "White"].mean()
+    sr_black = y_pred_test[data_test["Ethnicity"] == "Black"].mean()
+    sr_hispanic = y_pred_test[data_test["Ethnicity"] == "Hispanic"].mean()
+    sr_asian = y_pred_test[data_test["Ethnicity"] == "Asian"].mean()
+    pred_e_mean = data_test.groupby("Ethnicity")["Pred"].mean()
+
+
+    print("---- SUCCESS RATE BY ETHNICITY----")
+    for e in pred_e_mean.index:
+        print(e, "= %.3f" % pred_e_mean[e])
+        
+
+def model_evaluation_equality_of_opportunity(data: Data, config: Configuration, model: Model):
+    # Evaluation metrics based on the True Positive Rate of the model for each group within the sensitive features
+    pass
+    
+    
+############# Model Validation
+
+def model_validation_baseline(report: Report, config: Configuration, status: Status):
+    pass
+
+def model_validation_fairness(report: Report, config: Configuration):
+    pass
+    
 ############################################################## Bias Mitigation techniques
 
 
@@ -281,8 +382,8 @@ def bias_mitigation_in_process_train(data: Data, config: Configuration, report: 
 ############################################################## Explainability
 
 
-def explain_model_predictions(blackbox_model, X_train, y_test):
-    seed = 4
+def explain_model_predictions(blackbox_model: Model, X_train: Data, y_test: Data, config: Configuration):
+    seed = config.seed
     lime = LimeTabular(blackbox_model, X_train, random_state=seed)
     show(lime.explain_local(X_test[:5], y_test[:5]), 0)
 
@@ -370,3 +471,25 @@ def robustness_evaluation():
         np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)
     ) / len(y_test)
     print("Accuracy on adversarial test examples: {}%".format(accuracy * 100))
+
+
+if __name__ == "__main__":
+    data = Data(filepath="artifacts/data/data_training.parquet")
+    data_testing = Data(filepath="artifacts/data/data_testing.csv")
+    config_model = Configuration(config={"test_size": 0.3, "random_state": 4, 
+                                   "model_filepath": "model_baseline.pickle",
+                                   "sensitive_features": ["nationality", "gender"]})
+    config_metrics_report = Configuration(config={"sensitive_features": ["nationality", "gender"]})
+    model = Model(model_path="artifacts/model/model_baseline.pickle")
+    report_accuracy_filepath = os.path.join(REPORT_ARTIFACTS_PATH, "report_accuracy_demographics.csv")
+    report_accuracy = Report(filepath=report_accuracy_filepath)
+    report_filepath = os.path.join(REPORT_ARTIFACTS_PATH, "report_accuracy_demographics2.csv")
+    report = Report(filepath=report_filepath)
+    report_validation_model = Report(filepath=os.path.join(REPORT_ARTIFACTS_PATH, "model_performance_metrics_demographic_report.csv"))
+    status = Status(status.status_key, os.path.join(STATUS_ARTIFACTS_PATH, "model_validation.json"))
+    
+    #train_model(data, config_model)
+    #model_evaluation_accuracy(data_testing, config_model, model, report)
+    #model_evaluation_accuracy_mlflow(data_testing, config_metrics_report, model, report_accuracy)
+    #model_evaluation_accuracy_demographic_groups(data_testing, config_metrics_report, model, report)
+    #model_validation_baseline(report, config: Configuration, status: Status)

@@ -1,12 +1,19 @@
-import gdown
+import os
 import pickle
 import numpy as np
 import pandas as pd
-from artifact_types import Data, Configuration, Report
-from holisticai.bias.mitigation import Reweighing
+from library.src.artifact_types import Data, Configuration, Report, Status
+from utils import *
+
+# from holisticai.bias.mitigation import Reweighing
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+
+# data profiling
+from ydata_profiling import ProfileReport
 
 import digitalhub as dh
+from digitalhub_runtime_python import handler
 
 """ 
 Data preparation stage containing 4 operations
@@ -16,19 +23,13 @@ Data Preprocessing
 Data Documentation
 """
 
+####################################################### Evaluate if AI product can be reused for new use case
+
+def data_drift_detection():
+    """
+    """
+    pass
 ################################################################################################## Data Preprocessing
-
-
-def load_data_0(config: Configuration):
-    gdown.download(config.url, config.original_filepath, quiet=False)
-    # load data and remove all NaN values
-    with open(config.original_filepath, "rb") as handle:
-        raw_data = pickle.load(handle)
-    data = raw_data.dropna()
-    data = data.rename(columns={i: str(i) for i in range(500)})
-    data.to_parquet(config.resulting_filepath)
-    return Data(config.resulting_filepath, data)
-
 
 def split_data_from_df(data):
     """
@@ -41,8 +42,8 @@ def split_data_from_df(data):
     dem = data[filter_col].copy()  # Extract demographics
     return X, y, dem  # Return features, labels, demographics
 
-
-def load_data(data: Data, config: Configuration):
+@handler(outputs=["dataset"])
+def load_data(project):
     boolean_features = [
         "ind-debateclub",
         "ind-programming_exp",
@@ -52,7 +53,8 @@ def load_data(data: Data, config: Configuration):
         "decision",
     ]
     categorical_features = ["sport", "ind-degree", "company"]
-    dataset = data.get_data()
+    training_di = project.get_dataitem('recruitmentdataset.csv')
+    data = training_di.as_df()
     encoder = OneHotEncoder(sparse_output=False)
     encoded = encoder.fit_transform(data[categorical_features])
     encoded_df = pd.DataFrame(
@@ -60,6 +62,7 @@ def load_data(data: Data, config: Configuration):
     )
     data = pd.concat([encoded_df, data.drop(columns=categorical_features)], axis=1)
     data[boolean_features] = data[boolean_features].astype(int)
+    return data
 
 
 def resample_equal(df, cat):

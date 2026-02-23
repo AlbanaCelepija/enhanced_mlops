@@ -14,14 +14,25 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
 )
-from model_card_toolkit import ModelCardToolkit
 
 # visualization
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def get_metrics_classifier(group_a, group_b, y_pred, y_true):
+def split_data_from_df(data, sensitive_features):
+    """
+    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
+    """
+    filter_col = sensitive_features
+    features = data.drop(columns=["Id", "decision"] + filter_col).columns
+    y = data["decision"].values  # Extract labels
+    X = data[features].values  # Extract features
+    dem = data[filter_col].copy()  # Extract demographics
+    return X, y, dem  # Return features, labels, demographics
+
+
+def get_metrics_classifier(group_a, group_b, y_pred, y_true, group_label):
     """
     Function to calculate and return model accuracy and fairness metrics for two groups
     Returns a DataFrame of model accuracy and fairness metrics for two groups.
@@ -40,21 +51,21 @@ def get_metrics_classifier(group_a, group_b, y_pred, y_true):
     ]  # Calculate f1-score
     metrics += [
         [
-            "Black vs. White Disparate Impact",
+            f"{group_label} Disparate Impact",
             round(disparate_impact(group_a, group_b, y_pred), 2),
             1,
         ]
     ]  # Calculate disparate impact
     metrics += [
         [
-            "Black vs. White Statistical Parity",
+            f"{group_label} Statistical Parity",
             round(statistical_parity(group_a, group_b, y_pred), 2),
             0,
         ]
     ]  # Calculate statistical parity
     metrics += [
         [
-            "Black vs. White Average Odds Difference",
+            f"{group_label} Average Odds Difference",
             round(average_odds_diff(group_a, group_b, y_pred, y_true), 2),
             0,
         ]
@@ -86,7 +97,82 @@ def plot_to_str():
     return base64.encodebytes(img.getvalue()).decode("utf-8")
 
 
+# Function to calculate True Positive Rate (TPR) from confusion matrices
+def calculate_tpr(cms):
+    """
+    Calculates True Positive Rates (TPR) for each group,
+    given a set of confusion matrices.
+    """
+    tprs = {g: cm[0, 0] / cm[0, :].sum() for g, cm in cms.items()}  # Calculate TPR
+    return tprs  # Return dictionary of TPRs
+
+
+# Function to plot confusion matrices for different groups in a dataset
+def plot_confusion_matrices(groups, data_test, category, y_test, y_pred_test):
+    """
+    Plots confusion matrices for each group in a given category.
+    """
+    num_groups = len(groups) + 1  # Number of groups to display
+    fig, axes = plt.subplots(
+        1, num_groups, figsize=(5 * num_groups, 4)
+    )  # Create subplot grid
+
+    # Plot confusion matrix for overall data
+    cm = plot_cm(y_test, y_pred_test, ax=axes[0])
+    axes[0].set_title("All", fontsize=14, fontweight="bold")
+
+    # Plot confusion matrices for each group in the dataset
+    cm_dict = {"All": cm}  # Store overall confusion matrix
+    for i, group in enumerate(groups):
+        ax = axes[i + 1]  # Get axis for group
+        subset = data_test[data_test[category] == group]  # Filter data for group
+        cm = plot_cm(
+            subset["Label"], subset["Pred"], ax=ax
+        )  # Plot confusion matrix for group
+        cm_dict[group] = cm  # Store confusion matrix for group
+        ax.set_title(group, fontsize=14, fontweight="bold")
+
+    plt.tight_layout()  # Adjust layout
+    plt.show()  # Display plot
+    return cm_dict  # Return dictionary of confusion matrices for each group
+
+def plot_cm(y_true, y_pred, labels=[1, 0], display_labels=[1, 0], ax=None):
+    """
+    Plots a single confusion matrix with annotations
+    """
+    cm = confusion_matrix(y_true, y_pred, labels=labels)  # Compute confusion matrix
+
+    if ax is None:
+        fig, ax = plt.subplots(
+            figsize=(4, 3)
+        )  # Create new figure if no axis is provided
+
+    # Create heatmap for confusion matrix
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="g",
+        cmap="viridis",
+        cbar=False,
+        xticklabels=display_labels,
+        yticklabels=display_labels,
+        square=True,
+        linewidths=2,
+        linecolor="black",
+        ax=ax,
+        annot_kws={"size": 14},
+    )
+
+    # Label and format axes
+    ax.set_xlabel("Predicted Label", fontsize=12, fontweight="bold")
+    ax.set_ylabel("True Label", fontsize=12, fontweight="bold")
+    ax.set_xticklabels(display_labels, fontsize=11)
+    ax.set_yticklabels(display_labels, fontsize=11)
+
+    return cm  # Return confusion matrix
+
 def generate_model_card():
+    pass
     # TODO
-    mct = ModelCardToolkit()
-    model_card = mct.scaffold_assets()
+    # mct = ModelCardToolkit()
+    # model_card = mct.scaffold_assets()
