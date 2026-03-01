@@ -20,18 +20,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def split_data_from_df(data, sensitive_features):
-    """
-    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
-    """
-    filter_col = sensitive_features
-    features = data.drop(columns=["Id", "decision"] + filter_col).columns
-    y = data["decision"].values  # Extract labels
-    X = data[features].values  # Extract features
-    dem = data[filter_col].copy()  # Extract demographics
-    return X, y, dem  # Return features, labels, demographics
-
-
 def get_metrics_classifier(group_a, group_b, y_pred, y_true, group_label):
     """
     Function to calculate and return model accuracy and fairness metrics for two groups

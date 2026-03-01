@@ -48,12 +48,7 @@ def train_model(project, data):
     data_train, data_test = train_test_split(
         data, test_size=0.3, random_state=4
     )
-    #project.new_dataitem(name="training_set",
-    #                      kind="table",
-    #                      path=URL)
-    #project.new_dataitem(name="test_set",
-    #                      kind="table",
-    #                      path=URL)
+    
     # Get the feature matrix (X), target labels (y), and demographic data for both sets
     sensitive_features = ["nationality", "gender"]
     X_train, y_train, dem_train = split_data_from_df(data_train, sensitive_features)

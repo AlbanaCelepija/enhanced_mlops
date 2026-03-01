@@ -26,7 +26,7 @@ def data_drift_detection():
     pass
 ################################################################################################## Data Preprocessing
 
-def split_data_from_df(data):
+def split_demographic_data_from_df(data):
     """
     Splits a DataFrame into features (X), labels (y), and demographic data (dem).
     """
@@ -69,4 +69,19 @@ def load_data(project):
     
     return data
 
-
+def split_train_valid_test_data(project, data):
+    
+    # First split: train+val vs test
+    X_train_val, X_test, y_train_val, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+    # Second split: train vs validation
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val, y_train_val, test_size=0.25, random_state=42  # 0.25 x 0.8 = 0.2
+    )
+    project.new_dataitem(name="training_set",
+                          kind="table",
+                          path=URL)
+    project.new_dataitem(name="test_set",
+                          kind="table",
+                          path=URL)
