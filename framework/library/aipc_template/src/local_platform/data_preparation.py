@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from datasets import load_dataset
-from library.src.artifact_types import Data, Configuration, Report
+from library.src.artifact_types import Data, Configuration, Report, Status
 from sklearn.model_selection import train_test_split
 
 from transformers import AutoTokenizer
@@ -18,14 +18,12 @@ Data Documentation
 ################################################## Data Preprocessing
 
 
-def tokenize_function(data, config):
+def tokenize_function(data: Data, config: Configuration):
     tokenizer_model = config.tokenizer_model
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_model)
     return tokenizer(
         data["text"], padding="max_length", truncation=True, max_length=128
     )
-    tokenized_dataset = raw_datasets.map(tokenize_function, batched=True)
-    return tokenized_dataset
 
 
 def load_data(data: Data, config: Configuration) -> Data:
@@ -47,16 +45,17 @@ def check_common_issues(data):
     }
     for issue, mask in common_issues.items():
         data[issue] = mask.sum()
+    status = Status
     return None  # TODO Status
 
 
 def data_quality_report():
-    # The data quality report looks at the descriptive statistics and helps visualize relationships in the data. Unlike the data drift report,
-    # the data quality report can also work for a single dataset.
+    """The data quality report looks at the descriptive statistics and helps visualize relationships in the data. Unlike the data drift report,
+    the data quality report can also work for a single dataset.
 
-    # You can use it however you like. For example, you can generate and log the data quality snapshot for each model run and save it for future evaluation.
-    # You can also build a conditional workflow around it: maybe generate an alert or a visual report,
-    # for example, if you get a high number of new categorical values for a given feature.
+    You can use it however you like. For example, you can generate and log the data quality snapshot for each model run and save it for future evaluation.
+    You can also build a conditional workflow around it: maybe generate an alert or a visual report,
+    for example, if you get a high number of new categorical values for a given feature."""
     pass
 
 

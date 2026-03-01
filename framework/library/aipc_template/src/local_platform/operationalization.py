@@ -103,8 +103,10 @@ def production_data_monitoring_data_drift(
 
 
 def pre_inference_transformation():
+    """Adjustments made to production data prior to feeding it into the model"""
     pass
 
 
 def post_inference_transformation():
+    """Adjustments made to the model’s output to prevent data privacy breaches or to filter information."""
     pass
