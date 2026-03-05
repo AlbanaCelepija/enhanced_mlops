@@ -26,17 +26,6 @@ def data_drift_detection():
     pass
 ################################################################################################## Data Preprocessing
 
-def split_demographic_data_from_df(data):
-    """
-    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
-    """
-    filter_col = ["nationality", "gender"]
-    features = data.drop(columns=["Id", "decision"] + filter_col).columns
-    y = data["decision"].values  # Extract labels
-    X = data[features].values  # Extract features
-    dem = data[filter_col].copy()  # Extract demographics
-    return X, y, dem  # Return features, labels, demographics
-
 @handler(outputs=["dataset"])
 def load_data(project):
     boolean_features = [
@@ -57,31 +46,36 @@ def load_data(project):
     )
     data = pd.concat([encoded_df, data.drop(columns=categorical_features)], axis=1)
     data[boolean_features] = data[boolean_features].astype(int)
-    
-    # Split the data into training and testing sets (70% training, 30% testing)
-    #data_train, data_test = train_test_split(data, test_size=0.3, random_state=4)
-    #project.new_dataitem(name="training_set",
-    #                      kind="table",
-    #                      path=URL)
-    #project.new_dataitem(name="test_set",
-    #                      kind="table",
-    #                      path=URL)
-    
     return data
 
-def split_train_valid_test_data(project, data):
-    
+def split_train_valid_test_data(project, data, test_size, valid_size, random_state):
     # First split: train+val vs test
-    X_train_val, X_test, y_train_val, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+    X_train_val, X_test = train_test_split(
+        data.as_df(), test_size=test_size, random_state=random_state
     )
     # Second split: train vs validation
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_val, y_train_val, test_size=0.25, random_state=42  # 0.25 x 0.8 = 0.2
+    X_train, X_val = train_test_split(
+        X_train_val, test_size=valid_size, random_state=random_state  # 0.25 x 0.8 = 0.2
     )
-    project.new_dataitem(name="training_set",
+    project.log_dataitem(name="training_set_X",
                           kind="table",
-                          path=URL)
-    project.new_dataitem(name="test_set",
+                          data=X_train)
+    project.log_dataitem(name="test_set_X",
                           kind="table",
-                          path=URL)
+                          data=X_test)
+    project.log_dataitem(name="validation_set_X",
+                          kind="table",
+                          data=X_val)
+
+def split_demographic_data_from_df(project, data, config):
+    """
+    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
+    """
+    filter_col = config.sensitive_features # ["nationality", "gender"]
+    features = data.drop(columns=["Id", "decision"] + filter_col).columns
+    y = data["decision"].values  # Extract labels
+    X = data[features].values  # Extract features
+    dem = data[filter_col].copy()  # Extract demographics
+    return X, y, dem  # Return features, labels, demographics
+
+

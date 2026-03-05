@@ -1,6 +1,7 @@
 import os
 import pickle
 import logging
+import pandas as pd
 from pickle import dump
 
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
@@ -29,8 +30,7 @@ STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
 #################################################### Model Training ####################################################
 
 @handler(outputs=["model"])
-def train_model(project, data):
-    
+def train_model(project, data_train, ):    
     def split_data_from_df(data, sensitive_features):
         """
         Splits a DataFrame into features (X), labels (y), and demographic data (dem).
@@ -42,32 +42,35 @@ def train_model(project, data):
         dem = data[filter_col].copy()  # Extract demographics
         return X, y, dem  # Return features, labels, demographics
 
-
-    data = data.as_df()
+    data_train = data_train.as_df()
     # Split the data into training and testing sets (70% training, 30% testing)
     data_train, data_test = train_test_split(
-        data, test_size=0.3, random_state=4
-    )
-    
+        data_train, test_size=0.3, random_state=4
+    )    
     # Get the feature matrix (X), target labels (y), and demographic data for both sets
     sensitive_features = ["nationality", "gender"]
-    X_train, y_train, dem_train = split_data_from_df(data_train, sensitive_features)
-    X_test, y_test, dem_test = split_data_from_df(data_test, sensitive_features)
+    X_train, y_train, dem_train = split_data_from_df(data_train, sensitive_features)    
 
     # Define the model (RidgeClassifier) and train it on the training data
     model = RidgeClassifier(random_state=4)
     model.fit(X_train, y_train)
     
-    # Make predictions on the test set
-    y_predict = model.predict(X_test)
-
     model_output_path = "model"
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
     
     with open(model_output_path + "/model_baseline.pkl", "wb") as model_file:
-        dump(model, model_file, pickle.HIGHEST_PROTOCOL)
-        
+        dump(model, model_file, pickle.HIGHEST_PROTOCOL)       
+    model = project.log_model(name="hiring_classifier", kind="sklearn", source="./model/")    
+    return model
+
+########################################################################3 Model Evaluation
+
+def model_evaluation_accuracy_overall(project, model, data_valid, sensitive_features):
+    model = get_model(model)
+    X_test, y_test, dem_test = split_data_from_df(data_valid, sensitive_features)
+    # Make predictions on the test set
+    y_predict = model.predict(X_test)
     # Calculate and print the accuracy of the model on the test set
     metrics = {
         "f1_score": f1_score(y_test, y_predict),
@@ -75,48 +78,32 @@ def train_model(project, data):
         "precision": precision_score(y_test, y_predict),
         "recall": recall_score(y_test, y_predict),
     }
-    model = project.log_model(name="hiring_classifier", kind="sklearn", source="./model/")
     model.log_metrics(metrics)
-    return model
+    # TODO project.log_artifact
 
 
-def model_evaluation_accuracy_demographic_groups(data, config, model):
+def model_evaluation_accuracy_demographic_groups(project, model, data_valid, sensitive_features):
     accuracy_demographics = []
-    model = get_model(model.key)
+    model = get_model(model)
 
-    # prepare a validation dataset for prediction and predict
-    data_test = data.as_df()  
+    data_valid = data_valid.as_df()  
     # Get the feature matrix (X), target labels (y), and demographic data
-    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+    X_test, y_test, dem_test = split_data_from_df(data_valid, sensitive_features)
     y_pred_test = model.predict(X_test)
     
-    logging.info("---- OVERALL ACCURACY  ----")
-    # Calculate the accuracy of the model on the test set
-    acc = accuracy_score(y_test, y_pred_test)
-    accuracy_demographics = [["Overall Accuracy", "All", "%.3f" % acc]]
+    for sensitive_feat in sensitive_features:
+        logging.info(f"---- ACCURACY BY {sensitive_feat} ----")    
+        # Calculate accuracy for each gender group
+        dem_test = dem_test.reset_index(drop=True)
+        for group in dem_test[sensitive_feat].unique():
+            # Get the indices of the samples belonging to the current group
+            idx_group = dem_test[dem_test[sensitive_feat] == group].index
+            if group is None:
+                continue
+            # Calculate the accuracy for the current group
+            acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
+            accuracy_demographics += [[f"Accuracy by {sensitive_feat}", group, "%.3f" % acc]]
 
-    logging.info("---- ACCURACY BY GENDER ----")    
-    # Calculate accuracy for each gender group
-    dem_test = dem_test.reset_index(drop=True)
-    for group in dem_test["gender"].unique():
-        # Get the indices of the samples belonging to the current group
-        idx_group = dem_test[dem_test["gender"] == group].index
-        if group is None:
-            continue
-        # Calculate the accuracy for the current group
-        acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
-        accuracy_demographics += [["Accuracy by gender", group, "%.3f" % acc]]
-
-    logging.info("---- ACCURACY BY NATIONALITY ----")
-    # Calculate accuracy for each ethnicity group
-    for group in dem_test["nationality"].unique():
-        # Get the indices of the samples belonging to the current group
-        idx_group = dem_test[dem_test["nationality"] == group].index
-        if group is None:
-            continue
-        # Calculate the accuracy for the current group
-        acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
-        accuracy_demographics += [["Accuracy by ethnicity", group, "%.3f" % acc]]
     acc_demographics_df = pd.DataFrame(accuracy_demographics, columns=["Accuracy type", "Accuracy Type Group", "Accuracy Value"])
     
     #TODO produce report results

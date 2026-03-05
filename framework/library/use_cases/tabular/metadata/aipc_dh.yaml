@@ -44,17 +44,34 @@ operations:
 ####################################################### Data Preparation Stage
   - type: data_preprocessing  
     stage: data_preparation
-    id: data_preprocessing_step1
+    id: load_data
     name: Data preprocessing initial analysis 
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
-        path: data_preparation.py
+        path: mini_data_preparation.py
         method_name: load_data
         requirements: requirements.txt
         inputs:
           - configuration: output_file        
+        outputs:
+          - data: hiring_data_processed 
+
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: split_train_valid_test_data
+    name: Data preprocessing initial analysis 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: mini_data_preparation.py
+        method_name: split_train_valid_test_data
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_training  
+          - configuration: split_config        
         outputs:
           - data: hiring_data_processed 
 
@@ -66,7 +83,7 @@ operations:
     implementation: 
       framework: local
       spec:
-        path: data_preparation.py
+        path: mini_data_preparation.py
         method_name: bias_mitigation_pre_reweighing
         requirements: requirements.txt
         inputs:
