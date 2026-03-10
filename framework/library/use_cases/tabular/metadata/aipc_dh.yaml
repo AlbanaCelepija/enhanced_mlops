@@ -129,20 +129,23 @@ operations:
         outputs:
           - model: model_fairness_aware
 
-# model evaluation 
+########### Model Evaluation 
+
   - type: model_evaluation
     stage: modelling
-    id: model_evaluate_accuracy
-    name: Model Evaluation quality performance
+    id: model_evaluation_accuracy_overall
+    name: Model Evaluation overall quality performance
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: model_evaluation
+        method_name: model_evaluation_accuracy_overall
         requirements: requirements.txt
         inputs:
-          - 
+          - data:
+          - config:
+          - model: 
         outputs:
           - report: model_metrics_report
 ####################################################### Operationalization Stage
@@ -218,9 +221,15 @@ operations:
 ##################################################### Artifacts
 artifacts:
   data:
-    - name: hiring_data_processed
+    - name: hiring_data
       category: raw
-      filepath: data.parquet
+      filepath: "https://raw.githubusercontent.com/AlbanaCelepija/enhanced_mlops/refs/heads/main/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv"
+    - name: hiring_data_train
+      filepath: training_set_X
+    - name: hiring_data_validation
+      filepath: validation_set_X
+    - name: hiring_data_test
+      filepath: test_set_X
     - name: hiring_data_reweighed
       filepath: data_reweighed.parquet
   model:

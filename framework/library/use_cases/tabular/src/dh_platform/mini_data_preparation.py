@@ -5,7 +5,7 @@ import pandas as pd
 
 # from holisticai.bias.mitigation import Reweighing
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 import digitalhub as dh
 from digitalhub_runtime_python import handler
@@ -26,27 +26,11 @@ def data_drift_detection():
     pass
 ################################################################################################## Data Preprocessing
 
-@handler(outputs=["dataset"])
-def load_data(project):
-    boolean_features = [
-        "ind-debateclub",
-        "ind-programming_exp",
-        "ind-international_exp",
-        "ind-entrepeneur_exp",
-        "ind-exact_study",
-        "decision",
-    ]
-    categorical_features = ["sport", "ind-degree", "company"]
-    training_di = project.get_dataitem('recruitmentdataset.csv')
-    data = training_di.as_df()
-    encoder = OneHotEncoder(sparse_output=False)
-    encoded = encoder.fit_transform(data[categorical_features])
-    encoded_df = pd.DataFrame(
-        encoded, columns=encoder.get_feature_names_out(categorical_features)
-    )
-    data = pd.concat([encoded_df, data.drop(columns=categorical_features)], axis=1)
-    data[boolean_features] = data[boolean_features].astype(int)
-    return data
+def load_data(project, data_name, url):
+    project.new_dataitem(name=data_name,
+                          kind="table",
+                          path=url)
+    
 
 def split_train_valid_test_data(project, data, test_size, valid_size, random_state):
     # First split: train+val vs test
@@ -67,15 +51,16 @@ def split_train_valid_test_data(project, data, test_size, valid_size, random_sta
                           kind="table",
                           data=X_val)
 
-def split_demographic_data_from_df(project, data, config):
-    """
-    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
-    """
-    filter_col = config.sensitive_features # ["nationality", "gender"]
-    features = data.drop(columns=["Id", "decision"] + filter_col).columns
-    y = data["decision"].values  # Extract labels
-    X = data[features].values  # Extract features
-    dem = data[filter_col].copy()  # Extract demographics
-    return X, y, dem  # Return features, labels, demographics
 
-
+def preprocess_train_data(project, training_di, di_name, boolean_features, categorical_features):   
+    data = training_di.as_df()
+    encoder = OneHotEncoder(sparse_output=False)
+    encoded = encoder.fit_transform(data[categorical_features])
+    encoded_df = pd.DataFrame(
+        encoded, columns=encoder.get_feature_names_out(categorical_features)
+    )
+    data = pd.concat([encoded_df, data.drop(columns=categorical_features)], axis=1)
+    data[boolean_features] = data[boolean_features].astype(int)
+    project.log_dataitem(name=di_name,
+                          kind="table",
+                          data=data)
