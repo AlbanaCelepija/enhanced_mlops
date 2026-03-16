@@ -301,10 +301,10 @@ def populate_frames(
                     with tab2:
                         st.write("This is the Code tab")
                         method_content = load_method_content(
-                            method_name,
+                            method_name+"_real",
                             current_product,
                             current_framework,
-                            step_operations_module,
+                            "dh_"+step_operations_module,
                         )
                         code = st_ace(
                             value=method_content,
@@ -363,7 +363,10 @@ def populate_frames(
                         for output in eval(outputs):
                             if "report" in output:
                                 print(output["report"])
-                                report = list(filter(lambda x: x["name"] == output["report"], report_artifacts))[0]                            
+                                report = list(filter(lambda x: x["name"] == output["report"], report_artifacts))   
+                                if len(report) == 0:
+                                    continue
+                                report = report[0]                    
                                 report_path = report["filepath"]   
                                 report_path = os.path.join(
                                     USE_CASES_FOLDER,
@@ -378,13 +381,14 @@ def populate_frames(
                                         components.html(report, width=1000, height=1200, scrolling=True)
             
                     if st.button("Run operation", key=f"run_op_{ind}"):
-                        run_data_operation(
+                        run_operation(
                             operation,
                             data_artifacts,
                             model_artifacts,
                             configuration_artifacts,
                             current_product,
                             current_framework,
+                            step_operations_module
                         )
                 with cols_oper[1]:
                     st.write(
@@ -500,21 +504,28 @@ def get_function_source(file_path, function_name):
             return "\n".join(lines[start_line:end_line])
     return None
 
-def run_data_operation(
+def run_operation(
     operation,
     data_artifacts,
     model_artifacts,
     config_artifacts,
     current_product,
     current_framework="local",
+    step_operations_module="data_preparation.py"
 ):
+    product_config_file = os.path.join(
+        USE_CASES_FOLDER, current_product, "metadata", f"aipc_{current_framework}.yaml"
+    )
     product_operations_file = os.path.join(
         USE_CASES_FOLDER,
         current_product,
         "src",
         f"{current_framework}_platform",
-        "data_preparation.py",
+        step_operations_module,
     )
+    with open(product_config_file, "r") as yaml_file:
+        aipc_configs = yaml.safe_load(yaml_file)
+        product_name = aipc_configs["ai_product_name"]
     curr_module = import_from_path("curr_module", product_operations_file)
 
     specs = operation["implementation"]["spec"]
@@ -531,6 +542,8 @@ def run_data_operation(
                 for var_name, var_value in input_artifact[0].items()
                 if var_name != "name"
             }
+            artifact_vars["platform"] = current_framework
+            artifact_vars["product_name"] = product_name
             input_vars.update({"data": Data(**artifact_vars)})
         input_artifact = [
             art for art in config_artifacts if art["name"] == input_name[0]
@@ -545,7 +558,7 @@ def run_data_operation(
     print(input_vars)
 
     func = getattr(curr_module, method_name)
-    result = func(**input_vars)
+    result = func(product_name, **input_vars)
     # method_name = globals()[method_name]
     # result = method_name(**input_vars)
 
