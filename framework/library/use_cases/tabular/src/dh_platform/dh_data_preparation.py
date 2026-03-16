@@ -26,13 +26,13 @@ def data_drift_detection():
     pass
 ################################################################################################## Data Preprocessing
 
-def load_data(project, data_name, url):
+def load_data_real(project, data_name, url):
     project.new_dataitem(name=data_name,
                           kind="table",
                           path=url)
     
 
-def split_train_valid_test_data(project, data, test_size, valid_size, random_state):
+def split_train_valid_test_data_real(project, data, test_size, valid_size, random_state):
     # First split: train+val vs test
     X_train_val, X_test = train_test_split(
         data.as_df(), test_size=test_size, random_state=random_state
@@ -52,8 +52,10 @@ def split_train_valid_test_data(project, data, test_size, valid_size, random_sta
                           data=X_val)
 
 
-def preprocess_train_data(project, training_di, di_name, boolean_features, categorical_features):   
+def preprocess_train_data_real(project, training_di, di_name, boolean_features, categorical_features):   
     data = training_di.as_df()
+    boolean_features = boolean_features.split(",")
+    categorical_features = categorical_features.split(",")
     encoder = OneHotEncoder(sparse_output=False)
     encoded = encoder.fit_transform(data[categorical_features])
     encoded_df = pd.DataFrame(

@@ -1,9 +1,9 @@
 domain: PA
 data_modality: tabular
 ai_task: classification
-ai_product_name: Hiring classifier
+ai_product_name: fair-hiring-tabular
 ai_product_description: This is a sklearn model which aims to classify whether or not an individual should be hired.
-framework: local
+framework: dh
 operations:
 
 
@@ -48,15 +48,15 @@ operations:
     name: Data preprocessing initial analysis 
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: mini_data_preparation.py
         method_name: load_data
         requirements: requirements.txt
         inputs:
-          - configuration: output_file        
+          - configuration: load_data        
         outputs:
-          - data: hiring_data_processed 
+          - data: hiring_data 
 
   - type: data_preprocessing  
     stage: data_preparation
@@ -64,16 +64,35 @@ operations:
     name: Data preprocessing initial analysis 
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: mini_data_preparation.py
         method_name: split_train_valid_test_data
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_training  
+          - data: hiring_data  
           - configuration: split_config        
         outputs:
-          - data: hiring_data_processed 
+          - data: hiring_data_train 
+          - data: hiring_data_test 
+          - data: hiring_data_validation 
+
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: preprocess_train_data
+    name: Apply data transformation techniques 
+    requirement_dimension: baseline
+    implementation: 
+      framework: dh
+      spec:
+        path: mini_data_preparation.py
+        method_name: preprocess_train_data
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_train  
+          - configuration: preprocess_train_config        
+        outputs:
+          - data: training_data 
 
   - type: data_preprocessing  
     stage: data_preparation
@@ -81,7 +100,7 @@ operations:
     name: Data reweighing to mitigate bias 
     requirement_dimension: fairness
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: mini_data_preparation.py
         method_name: bias_mitigation_pre_reweighing
@@ -100,13 +119,13 @@ operations:
     name: Model Training without fairness awareness
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: modelling.py
         method_name: train_model
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
+          - data: training_data
           - configuration: model_train_fairness_unaware
         outputs:
           - model: model_fairness_unaware
@@ -117,7 +136,7 @@ operations:
     name: Model Training fairness aware
     requirement_dimension: fairness
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: modelling.py
         method_name: bias_mitigation_in_process_train
@@ -137,7 +156,7 @@ operations:
     name: Model Evaluation overall quality performance
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: modelling.py
         method_name: model_evaluation_accuracy_overall
@@ -157,7 +176,7 @@ operations:
     name: Model Deployment using kserve
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: operationalization.py
         method_name: model_deploy
@@ -175,7 +194,7 @@ operations:
     name: Model Monitoring using mlflow
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: operationalization.py
         method_name: model_monitor
@@ -192,7 +211,7 @@ operations:
     name: System Monitoring using telemetry
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: operationalization.py
         method_name: model_monitor
@@ -209,7 +228,7 @@ operations:
     name: Production Data Monitoring using evidently
     requirement_dimension: baseline
     implementation: 
-      framework: local
+      framework: dh
       spec:
         path: operationalization.py
         method_name: production_data_monitor
@@ -223,13 +242,15 @@ artifacts:
   data:
     - name: hiring_data
       category: raw
-      filepath: "https://raw.githubusercontent.com/AlbanaCelepija/enhanced_mlops/refs/heads/main/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv"
+      filepath: recruitmentdataset.csv
     - name: hiring_data_train
       filepath: training_set_X
     - name: hiring_data_validation
       filepath: validation_set_X
     - name: hiring_data_test
       filepath: test_set_X
+    - name: training_data
+      filepath: train_data
     - name: hiring_data_reweighed
       filepath: data_reweighed.parquet
   model:
@@ -240,11 +261,15 @@ artifacts:
       version: 1
       path: ../models/model_fair.pickle
   configuration:
-    - name: output_file
+    - name: load_data
       config:
-        url: https://drive.google.com/uc?id=1pkGhrZL_cEde9CaLspu-yO9CKxsUd7e5
-        original_filepath: data.pickle
-        resulting_filepath: data.parquet
+        url: https://raw.githubusercontent.com/AlbanaCelepija/enhanced_mlops/refs/heads/main/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
+        data_name: recruitmentdataset.csv
+    - name: preprocess_train_config
+      config:
+        di_name: train_data
+        boolean_features: ind-debateclub,ind-programming_exp,ind-international_exp,ind-entrepeneur_exp,ind-exact_study,decision
+        categorical_features: sport,ind-degree,company
     - name: output_reweigh_file
       config:
         resulting_filepath: data_reweighed.parquet

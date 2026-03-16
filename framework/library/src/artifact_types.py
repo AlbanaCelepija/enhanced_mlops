@@ -3,6 +3,7 @@ import yaml
 import json
 import pandas as pd
 from pickle import load
+import digitalhub as dh
 
 
 class Data:
@@ -10,12 +11,21 @@ class Data:
     The primary artifact fed into the training algorithm to fit the best model
     """
 
-    def __init__(self, filepath=None):
+    def __init__(self, filepath, platform: str, product_name: str):
         self.filepath = filepath
-        self.filetype = filepath.split(".")[1]
+        if "." in filepath:
+            self.filetype = filepath.split(".")[1]
+        self.project = dh.get_or_create_project(product_name)
+        self.product_name = product_name
+        self.platform = platform
+        
+    def get_productname(self):
+        return self.product_name
 
     def load_dataset(self):
-        if self.filetype == "csv":
+        if self.platform=="dh":
+            dataset = self.project.get_dataitem(self.filepath)
+        elif self.filetype == "csv":
             dataset = pd.read_csv(self.filepath)
         elif self.filetype == "json":
             dataset = pd.read_json(self.filepath)
@@ -38,9 +48,15 @@ class Report:
     Structured information about the results obtained after applying a function
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, platform: str, product_name: str):
         self.filepath = filepath
         self.filetype = filepath.split(".")[1]
+        self.project = dh.get_or_create_project(product_name)
+        self.product_name = product_name
+        self.platform = platform
+        
+    def get_productname(self):
+        return self.product_name
 
     def load_report(self):
         if os.path.isfile(self.filepath):
@@ -64,10 +80,18 @@ class Model:
     Either a single file or multiple files constituting the model
     """
 
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, platform: str, product_name: str):
         self.model_path = model_path
+        self.project = dh.get_or_create_project(product_name)
+        self.product_name = product_name
+        self.platform = platform
+        
+    def get_productname(self):
+        return self.product_name
         
     def load_model(self):
+        if self.platform=="dh":
+            model = self.project.get_model(self.model_path)
         with open(self.model_path, "rb") as model_file:
             model = load(model_file)
             return model
