@@ -17,10 +17,10 @@ operations:
       framework: dh
       spec:
         path: data_preparation.py
-        method_name: data_drift_detection
+        method_name: data_profiling
         requirements: requirements.txt
         inputs:
-          - data:  hiring_data_original 
+          - data:  hiring_data 
         outputs:
           - report: data_profiling_report
 
@@ -285,11 +285,15 @@ artifacts:
         test_size: 0.3
         random_state: 4
         threshold: 70
+    - name: profiling_actions
+      config:
+        dataset_name: recruitmentdataset-2022
+        actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
     - name: model_inferenceservice_endpoint
       endpoint: "http://localhost:8080/v2/models/hiring-sklearn/versions/v0.1.0/infer"
   report:
-    - name: data_report
-      filepath: data_report.json    
+    - name: data_profiling_report
+      filepath: data_profiling_report.json    
     - name: model_metrics_report
       filepath: model_metrics_report.csv
     - name: model_acc_fairness_metrics_report

@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from library.src.artifact_types import Data, Configuration, Report, Status
+from library.src.artifact_types import Data, Configuration, Report, Status, Documentation
 import digitalhub as dh
 from digitalhub_runtime_python import handler
 
@@ -72,3 +72,18 @@ def preprocess_train_data(product_name, data: Data, config: Configuration):
     )
     preprocess_fn.run(action="job", inputs={"training_di": training_di.key}, parameters=config.__dict__, wait=True)    
     
+    
+def data_profiling(product_name, data:Data):
+    pass
+
+def data_validation_check_quantity():
+    pass
+
+def data_validation_demographics_qty():
+    pass
+
+def preprocess_reweighing():
+    pass
+
+def data_card_generation():
+    pass
