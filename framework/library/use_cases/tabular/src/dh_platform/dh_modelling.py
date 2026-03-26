@@ -30,7 +30,7 @@ STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
 #################################################### Model Training ####################################################
 
 @handler(outputs=["model"])
-def train_model_eval(project, data_train, sensitive_features, random_state, id_feature, target_feature):        
+def train_model_real(project, data_train, sensitive_features, random_state, id_feature, target_feature):        
     data_train = data_train.as_df()        
     # Get the feature matrix (X), target labels (y), and demographic data for both sets
     X_train, y_train, dem_train = split_demographic_data_from_df(data_train, sensitive_features, id_feature, target_feature)    
