@@ -5,6 +5,7 @@ import logging
 import pandas as pd
 from pickle import dump
 
+from library.src.artifact_types import Data, Configuration, Model, Report, Status, Documentation
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import (
@@ -17,6 +18,7 @@ from sklearn.metrics import (
 )
 from digitalhub_runtime_python import handler
 from digitalhub import get_model
+import digitalhub as dh
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,86 +32,69 @@ STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
 #################################################### Model Training ####################################################
 
 @handler(outputs=["model"])
-def train_model(project, data_train, sensitive_features, random_state, id_feature, target_feature):        
-    data_train = data_train.as_df()        
-    # Get the feature matrix (X), target labels (y), and demographic data for both sets
-    X_train, y_train, dem_train = split_demographic_data_from_df(data_train, sensitive_features, id_feature, target_feature)    
+def train_model(product_name, config: Configuration):  
+    project = dh.get_or_create_project(product_name)   
+    train_fn = project.new_function(
+        name="train-classifier",
+        kind="python",
+        python_version="PYTHON3_10",
+        code_src="dh_modelling.py",
+        handler="train_model_real",
+        requirements=["scikit-learn", "numpy<2"],
+        labels=["model_training", "baseline"],
+    )
+    train_ds = project.get_dataitem('train_data')
+    train_fn.run(action="job", 
+                            inputs={"data_train": train_ds.key},
+                            parameters=config, 
+                            wait=True
+                            )   
 
-    # Define the model (RidgeClassifier) and train it on the training data
-    model = RidgeClassifier(random_state=random_state)
-    model.fit(X_train, y_train)
-    
-    model_output_path = "model"
-    if not os.path.exists(model_output_path):
-        os.makedirs(model_output_path)
-    
-    with open(model_output_path + "/model_baseline.pkl", "wb") as model_file:
-        dump(model, model_file, pickle.HIGHEST_PROTOCOL)       
-    model = project.log_model(name="hiring_classifier", kind="sklearn", source="./model/")    
-    return model
 
 ######################################################################### Model Evaluation
 
-def model_evaluation_accuracy_overall(project, model, data_valid, sensitive_features, id_feature, target_feature):
-    model_artifact = model
-    model_path = model.download()
-    model = pickle.load(open(model_path, "rb"))
-    X_test, y_test, dem_test = split_demographic_data_from_df(data_valid.as_df(), sensitive_features, id_feature, target_feature)
-    # Make predictions on the test set
-    y_predict = model.predict(X_test)
-    # Calculate and print the accuracy of the model on the test set
-    metrics = {
-        "f1_score": f1_score(y_test, y_predict),
-        "accuracy": accuracy_score(y_test, y_predict),
-        "precision": precision_score(y_test, y_predict),
-        "recall": recall_score(y_test, y_predict),
-    }
-    model_artifact.log_metrics(metrics)
-    artifact_output_path = "./artifacts"
-    if not os.path.exists(artifact_output_path):
-        os.makedirs(artifact_output_path)
-    with open(os.path.join(artifact_output_path, "accuracy_overall.json"), "w") as file:
-        json.dump(metrics, file, indent=4)  
-        
-    project.log_artifact(name="accuracy_overall", 
-                        kind="artifact", 
-                        labels=["baseline","model_evaluation", "report", "model_evaluation_accuracy_overall"],
-                        source=f"./{artifact_output_path}/accuracy_overall.json")
+def model_evaluation_accuracy_overall(product_name, model: Model, data_valid: Data, config: Configuration):
+    project = dh.get_or_create_project(product_name) 
+    model = model.load_model()
+    valid_ds = data_valid.load_dataset()
+    model_evaluation_accuracy_overall_fn = project.new_function(
+        name="model-evaluation-accuracy-overall",
+        kind="python",
+        python_version="PYTHON3_10",
+        code_src="dh_modelling.py",
+        handler="model_evaluation_accuracy_overall_real",
+        requirements=["scikit-learn", "numpy<2"],
+        labels=["model_evaluation", "baseline"],
+    )
+    model_evaluation_accuracy_overall_fn.run(
+        action="job",
+        inputs={"model": model.key, "data_valid": valid_ds.key}, 
+        parameters=config, 
+        wait=True
+    )
 
 
-def model_evaluation_accuracy_demographic_groups(project, model, data_valid, sensitive_features, id_feature, target_feature):
-    accuracy_demographics = []
-    model_path = model.download()
-    model = pickle.load(open(model_path, "rb"))
 
-    data_valid = data_valid.as_df()  
-    # Get the feature matrix (X), target labels (y), and demographic data
-    X_test, y_test, dem_test = split_demographic_data_from_df(data_valid, sensitive_features, id_feature, target_feature)
-    y_pred_test = model.predict(X_test)
-    
-    for sensitive_feat in sensitive_features:
-        logging.info(f"---- ACCURACY BY {sensitive_feat} ----")    
-        # Calculate accuracy for each gender group
-        dem_test = dem_test.reset_index(drop=True)
-        for group in dem_test[sensitive_feat].unique():
-            # Get the indices of the samples belonging to the current group
-            idx_group = dem_test[dem_test[sensitive_feat] == group].index
-            if group is None:
-                continue
-            # Calculate the accuracy for the current group
-            acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
-            accuracy_demographics += [[f"Accuracy by {sensitive_feat}", group, "%.3f" % acc]]
+def model_evaluation_accuracy_demographic_groups(product_name, model: Model, data_valid: Data, config: Configuration):
+    project = dh.get_or_create_project(product_name) 
+    model = model.load_model()
+    valid_ds = data_valid.load_dataset()
+    model_evaluation_accuracy_demographic_groups_fn = project.new_function(
+        name="model-evaluation-accuracy-demographic-groups",
+        kind="python",
+        python_version="PYTHON3_10",
+        code_src="dh_modelling.py",
+        handler="model_evaluation_accuracy_demographic_groups_real",
+        requirements=["scikit-learn", "numpy<2"],
+        labels=["model_evaluation", "baseline"],
+    )
+    model_evaluation_accuracy_demographic_groups_fn.run(
+        action="job",
+        inputs={"model": model.key, "data_valid": valid_ds.key}, 
+        parameters=config, 
+        wait=True
+    )
 
-    artifact_output_path = "./artifacts"
-    if not os.path.exists(artifact_output_path):
-        os.makedirs(artifact_output_path)
-    acc_demographics_df = pd.DataFrame(accuracy_demographics, columns=["Accuracy type", "Accuracy Type Group", "Accuracy Value"])
-    acc_demographics_df.to_json(os.path.join(artifact_output_path, "accuracy_demographic_groups.json"))
-    
-    project.log_artifact(name="accuracy_demographic_groups_artifact", 
-                        kind="artifact", 
-                        labels=["baseline", "model_evaluation", "report", "model_evaluation_accuracy_demographic_groups"],
-                        source=f"./{artifact_output_path}/accuracy_demographic_groups.json")
     
     
 
