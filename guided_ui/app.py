@@ -153,7 +153,7 @@ def show_stage(
                 report_artifacts
             )
             # visualize data artifacts
-            populate_data_artifacts(data_artifacts)
+            #populate_data_artifacts(data_artifacts)
         elif current_step == "Modeling":
             populate_frames(
                 model_operations,
@@ -300,11 +300,14 @@ def populate_frames(
                         #    md_path.write_text(md_text, encoding="utf-8")
                     with tab2:
                         st.write("This is the Code tab")
+                        if current_framework == "dh":
+                            method_name = method_name + "_real"
+                            step_operations_module = "dh_" + step_operations_module
                         method_content = load_method_content(
-                            method_name+"_real",
+                            method_name,
                             current_product,
                             current_framework,
-                            "dh_"+step_operations_module,
+                            step_operations_module,
                         )
                         code = st_ace(
                             value=method_content,
@@ -579,7 +582,7 @@ def main():
             with open(config_file, "r") as yaml_file:
                 aipc_configs = yaml.safe_load(yaml_file)   
             use_cases_list_names.append(f"{product}: ({aipc_configs['ai_product_name']})")
-    current_product_label = st.sidebar.selectbox("AI Products list", use_cases_list_names, index=3)
+    current_product_label = st.sidebar.selectbox("AI Products list", use_cases_list_names)
     current_product = current_product_label.split(": ")[0]
 
     session_state_params(current_product, current_framework)

@@ -8,6 +8,7 @@ from utils import populate_stages
 from dotenv import load_dotenv, find_dotenv
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import ToolNode
@@ -32,11 +33,13 @@ with open(pipeline_definitions_folder, "r") as yaml_file:
 
 def lifecycle_stages():
     ai_prod_name = st.text_area("AI product name")
-    ai_prod_desc = st.text_area("AI product description")
+    ai_prod_desc = st.text_area("AI product description", value="""Generate code implementation that is able to 
+                                implement data drift detection for a given dataset and append the generated code inside 
+                                the data_preparation.py file of src/local_platform folder inside the specified folder """)
     st.write("AI system's stages and operations")
     populate_stages(pipeline_configs, createview=True)
     return ai_prod_name, ai_prod_desc
-    
+
 
 # Step 2: definition of the requirements dimensions to be satisfied according to the AI product design objectives
 def show_new_prod_skeleton():
@@ -68,7 +71,7 @@ async def run_mcp_query(user_input):
         {
             "mlops_tai_engineers": {
                 "transport": "streamable_http",
-                "url": "http://127.0.0.1:8000/mcp"  
+                "url": "http://127.0.0.1:8081/mcp"  
             },
             "file_system": {
                 "transport": "streamable_http",
@@ -76,8 +79,9 @@ async def run_mcp_query(user_input):
             }
         }
     )
-    tools = await client.get_tools()
+    tools = await client.get_tools() # await load_mcp_tools(client) #
     print(tools)
+    resources = await client.get_resources("mlops_tai_engineers")
     model_with_tools = model.bind_tools(tools)
     tool_node = ToolNode(tools)
 
@@ -116,7 +120,7 @@ def generate_prod_action(ai_prod_desc):
 
     if st.button("Create AI product skeleton", key=f"generate_product"):        
         new_prod_folder = os.path.join(parent_folder, "framework/library/use_cases/new_prod")
-        folder = f"FOLDER: {new_prod_folder}"
+        folder = f" FOLDER: {new_prod_folder}"
         os.makedirs(new_prod_folder, exist_ok=True)
         with st.spinner("Thinking..."):
             answer = asyncio.run(run_mcp_query(ai_prod_desc + folder))

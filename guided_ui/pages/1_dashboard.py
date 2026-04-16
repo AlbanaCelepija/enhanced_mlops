@@ -20,7 +20,7 @@ def show_dashboard(current_product, current_framework):
     st.title(
         "Dashboard: AI Product Operations by Requirements Dimension", anchor="dashboard"
     )
-    current_product = st.sidebar.selectbox("AI Products list", use_cases_list, index=3)
+    current_product = st.sidebar.selectbox("AI Products list", use_cases_list)
     current_framework = st.sidebar.selectbox(
         "Tool governance platform", platform_list, index=0
     )
