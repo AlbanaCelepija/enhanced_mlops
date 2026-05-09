@@ -20,14 +20,15 @@ operations:
         method_name: data_drift_detection
         requirements: requirements.txt
         inputs:
-          - data:  hiring_data_original 
+          - data:  hiring_data_original
+          - configuration: constraints_file 
         outputs:
           - report: data_profiling_report
 
   - type: data_validation  
     stage: data_preparation
     id: data_drift_detection
-    name: Evaluate whether the target production data are drifted from training data 
+    name: Evaluate whether the target production data have drifted from training data 
     requirement_dimension: baseline
     implementation: 
       framework: local
@@ -58,6 +59,24 @@ operations:
           - configuration: output_file  
         outputs:
           - data: hiring_data_processed 
+
+  - type: data_profiling  
+    stage: data_preparation
+    id: data_profiling_custom
+    name: Data profiling custom analysis 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: src/local_platform/data_preparation.py
+        method_name: data_profiling_custom
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_original
+          - configuration: profiling_actions  
+        outputs:
+          - data: data_profiling_custom_report 
+
 
   - type: data_preprocessing  
     stage: data_preparation
@@ -298,8 +317,6 @@ operations:
 artifacts:
   data:
     - name: hiring_data_original
-      category: raw
-      modality: tabular
       filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
     - name: hiring_data_processed
       filepath: data_processed.parquet
@@ -358,6 +375,10 @@ artifacts:
       config:
         constraints_filepath: artifacts/constraints.json
         min_training_data: 1000
+    - name: profiling_actions
+      config:
+        dataset_name: recruitmentdataset-2022
+        actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
   report:
     - name: data_profiling_report
       filepath: artifacts/report/data_drift.html    
@@ -369,6 +390,8 @@ artifacts:
       filepath: model_eval_EOutcome_report.csv
     - name: model_eval_EOpportunity_report
       filepath: model_eval_EOpportunity_report.csv
+    - name: data_profiling_custom_report
+      filepath: data_profiling_custom_report.json
   status:
     - name: model_validation_baseline
       status_file: model_validation.json

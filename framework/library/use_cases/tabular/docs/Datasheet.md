@@ -89,9 +89,10 @@ Datasheet in the format of "Datasheets for datasets" as described in
     Yes, each data instance is associated with a 'label' feature.
 
 
-6. **Is any information missing from individual instances?** *(If so, please provide a description, explaining why this information is missing (e.g., because it was unavailable). This does not include intentionally removed information, but might include, e.g., redacted text.)*
+6. **Is any information missing from individual instances?** 
 
-    No.
+    No. The operation data_profiling_custom provides a set of predefined actions for data profiling to assess readiness for ML. It identifies key data quality issues, and produces a profile report data_profiling_custom_report.json. Generate a report of the dataset's summary, missing values, unique values and correlations.
+
 
 
 7. **Are relationships between individual instances made explicit (e.g., users' movie ratings, social network links)?** *( If so, please describe how these relationships are made explicit.)*

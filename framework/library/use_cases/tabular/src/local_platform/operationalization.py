@@ -27,8 +27,44 @@ def model_deploy(config: Configuration):
     model = CustomModel(model_name, model_path)
     KFServer(workers=1).start([model])
 
+
 def model_monitor():
-    pass
+    from fastapi import FastAPI, Request
+    import requests
+    import time
+    import uuid
+
+    app = FastAPI()
+
+    INFERENCE_URL = "http://model-service/predict"
+
+    @app.post("/predict")
+    async def proxy_predict(request: Request):
+        request_id = str(uuid.uuid4())
+        start_time = time.time()
+
+        # Get input data
+        input_data = await request.json()
+
+        # Forward request to model service
+        response = requests.post(INFERENCE_URL, json=input_data)
+        prediction = response.json()
+
+        latency = time.time() - start_time
+
+        # Log data (replace with DB / Kafka / storage)
+        log_entry = {
+            "request_id": request_id,
+            "input": input_data,
+            "output": prediction,
+            "latency": latency,
+            "timestamp": time.time()
+        }
+
+        print(log_entry)  # Replace with real logging
+
+        return prediction
+
 
 def post_processing_fairness(prediction):
     """

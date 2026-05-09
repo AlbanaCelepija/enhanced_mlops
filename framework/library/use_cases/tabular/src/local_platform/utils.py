@@ -136,6 +136,7 @@ def plot_confusion_matrices(groups, data_test, category, y_test, y_pred_test):
     plt.show()  # Display plot
     return cm_dict  # Return dictionary of confusion matrices for each group
 
+
 def plot_cm(y_true, y_pred, labels=[1, 0], display_labels=[1, 0], ax=None):
     """
     Plots a single confusion matrix with annotations
@@ -170,6 +171,7 @@ def plot_cm(y_true, y_pred, labels=[1, 0], display_labels=[1, 0], ax=None):
     ax.set_yticklabels(display_labels, fontsize=11)
 
     return cm  # Return confusion matrix
+
 
 def generate_model_card():
     pass
