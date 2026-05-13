@@ -21,7 +21,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data:  hiring_data_original
-          - configuration: constraints_file 
+          - config: constraints_file 
         outputs:
           - report: data_profiling_report
 
@@ -38,7 +38,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_original
-          - configuration: constraints_file    # range of values, thresholds       
+          - config: constraints_file    # range of values, thresholds       
         outputs:
           -  status: data_drift_status
 
@@ -56,7 +56,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_original
-          - configuration: output_file  
+          - config: output_file  
         outputs:
           - data: hiring_data_processed 
 
@@ -73,7 +73,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_original
-          - configuration: profiling_actions  
+          - config: profiling_actions  
         outputs:
           - data: data_profiling_custom_report 
 
@@ -91,7 +91,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_processed
-          - configuration: output_reweigh_file        
+          - config: output_reweigh_file        
         outputs:
           - data: hiring_data_reweighed 
 
@@ -111,7 +111,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_processed
-          - configuration: model_train
+          - config: model_train
         outputs:
           - model: model_baseline
 
@@ -128,7 +128,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: hiring_data_reweighed
-          - configuration: model_train_fairness_aware
+          - config: model_train_fairness_aware
           - report: model_acc_fairness_metric_report
         outputs:
           - model: model_fairness_aware
@@ -148,7 +148,7 @@ operations:
         inputs:
           - data: hiring_data_processed
           - model: model_baseline
-          - configuration: model_train
+          - config: model_train
         outputs:
           - report: model_metrics_report
 
@@ -166,7 +166,7 @@ operations:
         inputs:
           - data: hiring_data_processed
           - model: model_baseline
-          - configuration: model_train
+          - config: model_train
         outputs:
           - report: model_performance_metrics_demographic_report
   
@@ -184,7 +184,7 @@ operations:
         inputs:
           - data: hiring_data_processed
           - model: model_fairness_aware
-          - configuration: model_train_fairness_aware
+          - config: model_train_fairness_aware
         outputs:
           - report: model_eval_EOutcome_report
 
@@ -202,7 +202,7 @@ operations:
         inputs:
           - data: hiring_data_processed
           - model: model_fairness_aware
-          - configuration: model_train_fairness_aware
+          - config: model_train_fairness_aware
         outputs:
           - report: model_eval_EOpportunity_report
 
@@ -221,7 +221,7 @@ operations:
         requirements: requirements.txt
         inputs:
           - report: model_performance_metrics_demographic_report
-          - configuration: model_train_fairness_aware
+          - config: model_train_fairness_aware
         outputs:
           - status: model_validation_baseline
 
@@ -239,7 +239,7 @@ operations:
         inputs:
           - data: hiring_data_processed
           - model: model_fairness_aware
-          - configuration: model_train_fairness_aware
+          - config: model_train_fairness_aware
         outputs:
           - status: model_validation_fairness
 
@@ -261,7 +261,7 @@ operations:
           - model: model_fairness_unaware
 
         outputs:
-          - configuration: model_inferenceservice_endpoint
+          - config: model_inferenceservice_endpoint
 
 # TODO observability (mlflow, wandb)
   - type: model_monitoring

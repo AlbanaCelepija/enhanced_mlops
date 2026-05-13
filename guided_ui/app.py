@@ -537,17 +537,17 @@ def run_operation(
     outputs = specs["outputs"]
     input_vars = {}
     for my_input in inputs:
+        print(my_input)
         input_name = list(my_input.values())
         input_artifact = [art for art in data_artifacts if art["name"] == input_name[0]]
+        input_key = list(my_input.keys())[0]  
         if len(input_artifact) > 0:
             artifact_vars = {
                 var_name: var_value
                 for var_name, var_value in input_artifact[0].items()
                 if var_name != "name"
             }
-            artifact_vars["platform"] = current_framework
-            artifact_vars["product_name"] = product_name
-            input_vars.update({"data": Data(**artifact_vars)})
+            input_vars.update({input_key: Data(**artifact_vars)})
         input_artifact = [
             art for art in config_artifacts if art["name"] == input_name[0]
         ]
@@ -557,11 +557,14 @@ def run_operation(
                 for var_name, var_value in input_artifact[0].items()
                 if var_name != "name"
             }
-            input_vars.update({"config": Configuration(**artifact_vars)})
+            input_vars.update({input_key: Configuration(**artifact_vars)})
     print(input_vars)
 
     func = getattr(curr_module, method_name)
-    result = func(product_name, **input_vars)
+    if current_framework == "local":
+        func(**input_vars)
+    else:
+        func(product_name, **input_vars)
     # method_name = globals()[method_name]
     # result = method_name(**input_vars)
 

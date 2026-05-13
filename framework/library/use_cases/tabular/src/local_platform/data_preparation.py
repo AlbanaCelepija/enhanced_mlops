@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from typing import List, Dict, Any, Tuple
 from library.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
+from library.use_cases.tabular.src.local_platform.platform_artifacts import DataTabular
 from library.use_cases.tabular.src.local_platform.utils import *
 
 # from holisticai.bias.mitigation import Reweighing
@@ -125,10 +126,11 @@ def data_profiling_custom(
     data: Data, 
     config: Configuration
     ):
+    data = DataTabular(filepath=data.filepath)
     df = data.load_dataset()
     results = []
-    for act in config.actions:
-        action = act["name"]
+    for act in config.actions.split(","):
+        action = act.strip()
         result_meta = {"action": action}
         if action == "summary":
             result_meta["n_rows"] = int(df.shape[0])

@@ -3,60 +3,34 @@ import yaml
 import json
 import pandas as pd
 from pickle import load
-import digitalhub as dh
+from abc import ABC, abstractmethod
 
 
-class Data:
+class Data():
     """
-    The primary artifact fed into the training algorithm to fit the best model
+    Base class for data artifacts. Subclasses should implement specific behavior.
     """
-
-    def __init__(self, filepath, platform: str, product_name: str):
+    def __init__(self, filepath):
         self.filepath = filepath
-        if "." in filepath:
-            self.filetype = filepath.split(".")[1]
-        self.project = dh.get_or_create_project(product_name)
-        self.product_name = product_name
-        self.platform = platform
-        
-    def get_productname(self):
-        return self.product_name
+        self.filetype = filepath.split(".")[-1] if "." in filepath else None
 
     def load_dataset(self):
-        if self.platform=="dh":
-            dataset = self.project.get_dataitem(self.filepath)
-        elif self.filetype == "csv":
-            dataset = pd.read_csv(self.filepath)
-        elif self.filetype == "json":
-            dataset = pd.read_json(self.filepath)
-        else:
-            dataset = pd.read_parquet(self.filepath)
-        return dataset
+        """Load dataset. Must be implemented by subclasses."""
+        pass
 
     def log_dataset(self, dataset):
-        if self.filetype == "csv":
-            dataset.to_csv(self.filepath, index=False)
-        elif self.filetype == "json":
-            dataset.to_json(self.filepath)
-        else:
-            dataset.to_parquet(self.filepath)
-
-
+        """Log dataset. Must be implemented by subclasses."""
+        pass
+        
 
 class Report:
     """
     Structured information about the results obtained after applying a function
     """
 
-    def __init__(self, filepath, platform: str, product_name: str):
+    def __init__(self, filepath):
         self.filepath = filepath
-        self.filetype = filepath.split(".")[1]
-        self.project = dh.get_or_create_project(product_name)
-        self.product_name = product_name
-        self.platform = platform
-        
-    def get_productname(self):
-        return self.product_name
+        self.filetype = filepath.split(".")[-1]
 
     def load_report(self):
         if os.path.isfile(self.filepath):
@@ -71,8 +45,6 @@ class Report:
             dataframe.to_csv(self.filepath)
         elif self.filetype == "json":
             dataframe.to_json(self.filepath)
-        
-
 
 
 class Model:
@@ -80,18 +52,10 @@ class Model:
     Either a single file or multiple files constituting the model
     """
 
-    def __init__(self, model_path: str, platform: str, product_name: str):
+    def __init__(self, model_path: str):
         self.model_path = model_path
-        self.project = dh.get_or_create_project(product_name)
-        self.product_name = product_name
-        self.platform = platform
-        
-    def get_productname(self):
-        return self.product_name
-        
+
     def load_model(self):
-        if self.platform=="dh":
-            model = self.project.get_model(self.model_path)
         with open(self.model_path, "rb") as model_file:
             model = load(model_file)
             return model
@@ -126,7 +90,6 @@ class Status:
         self.status_file = status_file
 
     def change_status(self, new_status):
-        self.status_key = status_key
         value = open(self.status_file, "r")
         data = eval(value)
 
@@ -141,10 +104,9 @@ class Documentation:
     Files that contain human-readable content
     """
 
-    def __init__(self, type, filepath, content):
-        self.type = type
-        self.filepath = filepath
-        self.content = content
+    def __init__(self, config: dict):
+        for key, value in config.items():
+            setattr(self, key, value)
 
     def get_content(self):
         return self.content
@@ -159,9 +121,9 @@ class Function:
     An implementation function
     """
 
-    def __init__(self, name, file):
-        self.name = name
-        self.file = file
+    def __init__(self, config: dict):
+        for key, value in config.items():
+            setattr(self, key, value)
 
 
 class Service:
@@ -169,9 +131,9 @@ class Service:
     Service encapsulating the model and parameters for serving it, matching evaluation parameters
     """
 
-    def __init__(self, name):
-        self.name = name
-
+    def __init__(self, config: dict):
+        for key, value in config.items():
+            setattr(self, key, value)
 
 class Logs:
     """

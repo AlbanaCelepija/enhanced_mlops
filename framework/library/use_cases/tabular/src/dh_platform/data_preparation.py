@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from library.src.artifact_types import Data, Configuration, Report, Status, Documentation
+from library.use_cases.tabular.src.dh_platform.platform_artifacts import DataPlatform
 import digitalhub as dh
 from digitalhub_runtime_python import handler
 
@@ -45,7 +46,8 @@ def load_data(product_name, config: Configuration):
 
 def split_train_valid_test_data(product_name, data: Data, config: Configuration):
     project = dh.get_or_create_project(product_name)
-    raw_training_di = data.load_dataset()
+    data = DataPlatform(filepath=data.filepath)
+    raw_training_di = data.load_dataset(product_name)
     split_fn = project.new_function(
         name="split-train-valid-test",
         kind="python",
@@ -60,7 +62,8 @@ def split_train_valid_test_data(product_name, data: Data, config: Configuration)
 
 def preprocess_train_data(product_name, data: Data, config: Configuration):
     project = dh.get_or_create_project(product_name)  
-    training_di = data.load_dataset()
+    data = DataPlatform(filepath=data.filepath)
+    training_di = data.load_dataset(product_name)
     preprocess_fn = project.new_function(
         name="preprocess_train_data",
         kind="python",
@@ -74,6 +77,8 @@ def preprocess_train_data(product_name, data: Data, config: Configuration):
     
     
 def data_profiling(product_name, data:Data):
+    data = DataPlatform(filepath=data.filepath)
+    raw_data = data.load_dataset(product_name)
     pass
 
 def data_validation_check_quantity():

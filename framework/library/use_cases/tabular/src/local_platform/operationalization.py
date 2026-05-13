@@ -17,8 +17,10 @@ from holisticai.bias.metrics import (
     average_odds_diff,
 )
 from holisticai.bias.mitigation import EqualizedOdds
+from tools_catalog.code_snippets.alibi_detect import X_test
 
 
+################################## Model deployment #################################
 def model_deploy(config: Configuration):
     model_name = config.name
     model_path = config.path
@@ -27,8 +29,54 @@ def model_deploy(config: Configuration):
     model = CustomModel(model_name, model_path)
     KFServer(workers=1).start([model])
 
+def inference(config: Configuration, data: Data):
+    # data example: [[6.8,  2.8,  4.8,  1.4], [6.0,  3.4,  4.5,  1.6]]
+    config = RESTConfig(protocol="v1", retries=5, timeout=30)
+    client = InferenceRESTClient(config)
+    base_url = config.endpoint
+    data = {"instances": data}
+    model_name = "sklearn-hiring"
+    result = client.infer(base_url, data, model_name=model_name)  # await
+    print(result)
+
+
+def inference_example(config: Configuration):
+    x_0 = X_test[0:1]
+    inference_request = {
+        "inputs": [
+            {
+                "name": "predict",
+                "shape": x_0.shape,
+                "datatype": "FP32",
+                "data": x_0.tolist(),
+            }
+        ]
+    }
+    endpoint = config.endpoint
+    response = requests.post(endpoint, json=inference_request)
+    response.json()
+    
+################################################################################# Data drift detection
+
+def data_drift_detection_evidently():
+    pass
+
+
+def data_drift_detection_nannyml():
+    pass
+
+################################################################################ Model monitoring
+
+def quantify_concept_drift_impact_on_performance():
+    pass
+
+
+def measure_magnitude_of_concept_drift():   
+    pass
+
 
 def model_monitor():
+    
     from fastapi import FastAPI, Request
     import requests
     import time
@@ -65,6 +113,29 @@ def model_monitor():
 
         return prediction
 
+
+def visualise_metrics(metrics):
+    display(metrics_eq)  # Display the fairness metrics
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=metrics, x="Metric", y="Value", hue="mitigation")
+    plt.axhline(y=0.8, linewidth=2, color="r", linestyle="--")
+    plt.axhline(y=-0.05, linewidth=2, color="r", linestyle="--")
+    plt.axhline(y=1, linewidth=2, color="g")
+    plt.axhline(y=0, linewidth=2, color="g")
+    plt.xticks(rotation=45, ha="right", fontsize=12)
+    plt.show()
+
+
+################################################################################ proxy for inference service
+
+
+def pre_inference_transformation():
+    pass
+
+
+def post_inference_transformation():
+    pass
 
 def post_processing_fairness(prediction):
     """
@@ -150,63 +221,3 @@ def post_processing_fairness(prediction):
     metrics = pd.concat([metrics_orig, metrics_eq], axis=0, ignore_index=True)
     return metrics
 
-
-def visualise_metrics(metrics):
-    display(metrics_eq)  # Display the fairness metrics
-
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=metrics, x="Metric", y="Value", hue="mitigation")
-    plt.axhline(y=0.8, linewidth=2, color="r", linestyle="--")
-    plt.axhline(y=-0.05, linewidth=2, color="r", linestyle="--")
-    plt.axhline(y=1, linewidth=2, color="g")
-    plt.axhline(y=0, linewidth=2, color="g")
-    plt.xticks(rotation=45, ha="right", fontsize=12)
-    plt.show()
-
-
-################################################################################ Model monitoring
-# experiments tracking: efficient
-
-
-def model_monitoring():
-    """mlflow"""
-    pass
-
-
-def inference(config: Configuration, data: Data):
-    # data example: [[6.8,  2.8,  4.8,  1.4], [6.0,  3.4,  4.5,  1.6]]
-    config = RESTConfig(protocol="v1", retries=5, timeout=30)
-    client = InferenceRESTClient(config)
-    base_url = config.endpoint
-    data = {"instances": data}
-    model_name = "sklearn-hiring"
-    result = client.infer(base_url, data, model_name=model_name)  # await
-    print(result)
-
-
-def inference_example(config: Configuration):
-    x_0 = X_test[0:1]
-    inference_request = {
-        "inputs": [
-            {
-                "name": "predict",
-                "shape": x_0.shape,
-                "datatype": "FP32",
-                "data": x_0.tolist(),
-            }
-        ]
-    }
-    endpoint = config.endpoint
-    response = requests.post(endpoint, json=inference_request)
-    response.json()
-
-
-################################################################################ proxy for inference service
-
-
-def pre_inference_transformation():
-    pass
-
-
-def post_inference_transformation():
-    pass
