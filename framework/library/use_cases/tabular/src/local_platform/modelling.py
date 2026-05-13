@@ -3,7 +3,13 @@ import pickle
 import logging
 from pickle import dump
 
-from holisticai.bias.mitigation import EqualizedOdds
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from tqdm import tqdm
+
+from holisticai.bias.mitigation import EqualizedOdds, Reweighing, GridSearchReduction
 from holisticai.bias.metrics import (
     disparate_impact,
     statistical_parity,
@@ -27,6 +33,7 @@ from sklearn.metrics import (
     roc_auc_score,
     confusion_matrix,
 )
+from lightgbm import LGBMClassifier
 
 # import mlflow
 # import mlflow.sklearn
@@ -39,105 +46,73 @@ MODEL_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "model")
 REPORT_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "report")
 STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
 
+
 #################################################### Feature Engineering
 
 
-def permutation_feature_importance(data_test: Data, model: Model):
-    # Function to permute a specific feature column in the dataset
-    def permute_X(X, j):
-        Xj = X.copy()
-        Xj[j] = Xj[j].sample(frac=1).values  # Shuffle feature values
-        return Xj
+def permutation_feature_importance(
+    data_test: Data, model: Model, config: Configuration, report: Report
+) -> Report:
+    """
+    Computes permutation feature importance for both accuracy and disparate impact.
 
-    X_test = data_test.get_dataset()
-    # Define parameters
+    Config attributes:
+        sensitive_features, id_feature, target_feature,
+        group_col, group_a_val, group_b_val, n_iter (optional, default 10)
+    """
+    model_obj = model.load_model()
+    data = data_test.load_dataset()
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    feature_cols = data.drop(
+        columns=[config.id_feature, config.target_feature] + config.sensitive_features
+    ).columns.tolist()
+    X_test_df = data[feature_cols].copy()
+
+    group_a_test = dem_test[config.group_col] == config.group_a_val
+    group_b_test = dem_test[config.group_col] == config.group_b_val
+
+    acc_base = accuracy_score(y_test, model_obj.predict(X_test))
+    di_base = disparate_impact(group_a_test, group_b_test, model_obj.predict(X_test))
+
+    n_features = X_test_df.shape[1]
+    n_iter = getattr(config, "n_iter", 10)
+
     np.random.seed(10)
-    n_features = len(X_test.columns)
-    n_iter = 10
-
-    # Initialize arrays to store accuracy and disparate impact results
     accs = np.zeros((n_iter, n_features))
     dis = np.zeros((n_iter, n_features))
 
-    # Iterate over features and perform permutation testing
     for j in tqdm(range(n_features)):
         for i in range(n_iter):
-            # Shuffle feature j and make predictions
-            X_test_permuted = permute_X(X_test, str(j))
-            y_pred_test_permuted = model.predict(X_test_permuted)
+            X_perm = X_test_df.copy()
+            col = X_test_df.columns[j]
+            X_perm[col] = X_perm[col].sample(frac=1).values
+            y_perm = model_obj.predict(X_perm.values)
+            accs[i, j] = accuracy_score(y_test, y_perm)
+            dis[i, j] = disparate_impact(group_a_test, group_b_test, y_perm)
 
-            # Compute accuracy and disparate impact and store results
-            accs[i, j] = accuracy_score(y_test, y_pred_test_permuted)
-            dis[i, j] = disparate_impact(
-                group_a_test, group_b_test, y_pred_test_permuted
-            )
+    def _build_imp_df(diff, cols):
+        df = pd.DataFrame({"feature": cols})
+        df["imp_mean"] = diff.mean(axis=0).round(3)
+        df["imp_std"] = diff.std(axis=0).round(3)
+        return df.sort_values("imp_mean", ascending=False).reset_index(drop=True)
+
+    df_acc_imp = _build_imp_df(accs - acc_base, feature_cols)
+    df_di_imp = _build_imp_df(dis - di_base, feature_cols)
+
+    df_acc_imp["importance_type"] = "accuracy"
+    df_di_imp["importance_type"] = "disparate_impact"
+    combined = pd.concat([df_acc_imp, df_di_imp], axis=0, ignore_index=True)
+    report.save_report(combined)
+    return report
 
 
 #################################################### Model Training ####################################################
 
-
-def train_model_mlflow(data: Data, config: Configuration):
-    """ """
-    data = data.get_dataset()
-    # Split the data into training and testing sets (70% training, 30% testing)
-    data_train, data_test = train_test_split(
-        data, test_size=config.test_size, random_state=config.random_state
-    )
-    train_dataset = mlflow.data.from_pandas(data_train, name="train")
-    test_dataset = mlflow.data.from_pandas(data_test, name="test")
-
-    # Get the feature matrix (X), target labels (y), and demographic data for both sets
-    X_train, y_train, dem_train = split_data_from_df(data_train)
-    X_test, y_test, dem_test = split_data_from_df(data_test)
-
-    # Set th experiment name
-    # mlflow.set_experiment("hiring_classification")
-    with mlflow.start_run(run_name="train_no_fairness"):
-
-        # Define the model (RidgeClassifier) and train it on the training data
-        model = RidgeClassifier(random_state=config.random_state)
-        model.fit(X_train, y_train)
-
-        model_output_path = os.path.join(MODEL_ARTIFACTS_PATH, config.model_filepath)
-        with open(model_output_path, "wb") as model_file:
-            dump(model, model_file, pickle.HIGHEST_PROTOCOL)
-
-        # Make predictions on the test set
-        y_pred_test = model.predict(X_test)
-
-        # Define the groupings for fairness analysis (Black and White) in the test set
-        group_a_test = dem_test["nationality"] == "Dutch"
-        group_b_test = dem_test["nationality"] == "Belgian"
-
-        metrics_rw = get_metrics_classifier(
-            group_a_test, group_b_test, y_pred_test, y_test
-        )
-        metrics_rw.to_csv("metrics_accuracy.csv")
-
-        mlflow.log_param("model_type", "RidgeClassifier")
-        model_info = mlflow.sklearn.log_model(
-            sk_model=model,
-            name="RidgeClassifier",
-            registered_model_name="RidgeClassifier",
-            input_example=X_train,
-        )
-        mlflow.log_metrics(
-            metrics={metric.Metric: metric.Value for metric in metrics_rw.itertuples()},
-            dataset=train_dataset,
-            model_id=model_info.model_id,
-        )
-        print(model_info.model_id)
-
-        # Add the model's predictions to the data_test DataFrame for easier analysis
-        data_test = data_test.copy()
-        data_test["Pred"] = y_pred_test
-        # TODO generate report to return from this method
-
-
 def train_model(data: Data, config: Configuration):
-    """ """
+    """Train a RidgeClassifier and persist model and split datasets."""
     data = data.load_dataset()
-    # Split the data into training and testing sets (70% training, 30% testing)
     data_train, data_test = train_test_split(
         data, test_size=config.test_size, random_state=config.random_state
     )
@@ -145,13 +120,14 @@ def train_model(data: Data, config: Configuration):
     artifact_data_train.log_dataset(data_train)
     artifact_data_test = Data(os.path.join(DATA_ARTIFACTS_PATH, "data_testing.csv"))
     artifact_data_test.log_dataset(data_test)
-    # Get the feature matrix (X), target labels (y), and demographic data for both sets
-    X_train, y_train, dem_train = split_data_from_df(
-        data_train, config.sensitive_features
-    )
-    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
 
-    # Define the model (RidgeClassifier) and train it on the training data
+    X_train, y_train, dem_train = split_demographic_data_from_df(
+        data_train, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_test, config.sensitive_features, config.id_feature, config.target_feature
+    )
+
     model = RidgeClassifier(random_state=config.random_state)
     model.fit(X_train, y_train)
 
@@ -160,33 +136,57 @@ def train_model(data: Data, config: Configuration):
         dump(model, model_file, pickle.HIGHEST_PROTOCOL)
 
 
+def train_model_reweighing(data: Data, config: Configuration) -> Model:
+    """Pre-processing bias mitigation using Reweighing (Kamiran and Calders, 2012).
+
+    Adjusts sample weights before training so the model satisfies statistical parity.
+
+    Config attributes:
+        test_size, random_state, sensitive_features, id_feature, target_feature,
+        group_col, group_a_val, group_b_val, model_filepath
+    """
+    data_df = data.load_dataset()
+    data_train, _ = train_test_split(
+        data_df, test_size=config.test_size, random_state=config.random_state
+    )
+    X_train, y_train, dem_train = split_demographic_data_from_df(
+        data_train, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    group_a_train = dem_train[config.group_col] == config.group_a_val
+    group_b_train = dem_train[config.group_col] == config.group_b_val
+
+    rew = Reweighing()
+    rew.fit(y_train, group_a_train, group_b_train)
+    sample_weights = rew.estimator_params["sample_weight"]
+
+    model = RidgeClassifier(random_state=config.random_state)
+    model.fit(X_train, y_train, sample_weight=sample_weights.ravel())
+
+    model_output_path = os.path.join(MODEL_ARTIFACTS_PATH, config.model_filepath)
+    with open(model_output_path, "wb") as model_file:
+        dump(model, model_file, pickle.HIGHEST_PROTOCOL)
+    return Model(model_path=model_output_path)
+
+
 def hyperparameters_optimization(data: Data, config: Configuration):
     data = data.get_dataset()
     X_train, X_test, y_train, y_test = train_test_split(
         data, test_size=config.test_size, random_state=config.random_state
     )
     lr = ElasticNet()
-    # Define distribution to pick parameter values from
     distributions = dict(
-        alpha=uniform(loc=0, scale=10),  # sample alpha uniformly from [-5.0, 5.0]
-        l1_ratio=uniform(),  # sample l1_ratio uniformlyfrom [0, 1.0]
+        alpha=uniform(loc=0, scale=10),
+        l1_ratio=uniform(),
     )
-    # Initialize random search instance
     clf = RandomizedSearchCV(
         estimator=lr,
         param_distributions=distributions,
-        # Optimize for mean absolute error
         scoring="neg_mean_absolute_error",
-        # Use 5-fold cross validation
         cv=5,
-        # Try 100 samples. Note that MLflow only logs the top 5 runs.
         n_iter=100,
     )
-    # Start a parent run
     with mlflow.start_run(run_name="hyperparameter-tuning"):
         search = clf.fit(X_train, y_train)
-
-        # Evaluate the best model on test dataset
         y_pred = clf.best_estimator_.predict(X_test)
         rmse, mae, r2 = eval_metrics(clf.best_estimator_, y_pred, y_test)
         mlflow.log_metrics(
@@ -203,14 +203,14 @@ def hyperparameters_optimization(data: Data, config: Configuration):
 
 def model_evaluation_accuracy(
     data: Data, config: Configuration, model: Model, report: Report
-):
+) -> Report:
     model = model.load_model()
-    # prepare a validation dataset for prediction and predict
     data_test = data.load_dataset()
-    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_test, config.sensitive_features, config.id_feature, config.target_feature
+    )
     y_pred_test = model.predict(X_test)
 
-    # Calculate the accuracy of the model on the test set
     acc = accuracy_score(y_test, y_pred_test)
     evaluation_metric = pd.DataFrame(
         columns=["Metric", "Value", "Reference"], data=[["Accuracy", acc, "1"]]
@@ -225,14 +225,13 @@ def model_evaluation_accuracy(
 def model_evaluation_accuracy_simple(
     data: Data, config: Configuration, model: Model, metrics_baseline_report: Report
 ) -> Report:
-
     model = model.load_model()
     data_test = data.load_dataset()
-    # Get the feature matrix (X), target labels (y), and demographic data
-    X_test, y_test, dem_test = split_data_from_df(data_test, config.sensitive_features)
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_test, config.sensitive_features, config.id_feature, config.target_feature
+    )
     y_pred_test = model.predict(X_test)
 
-    # Define the groupings for fairness analysis (Black and White) in the test set
     group_a_test = dem_test["nationality"] == "Dutch"
     group_b_test = dem_test["nationality"] == "Belgian"
 
@@ -244,13 +243,17 @@ def model_evaluation_accuracy_simple(
 
 
 def model_evaluation_accuracy_demographic_groups(
-    model: Model, data_valid: Data, config: Configuration
-):
+    model: Model, data_valid: Data, config: Configuration, report: Report
+) -> Report:
+    """Computes per-group accuracy for each sensitive feature and saves to report.
+
+    Config attributes:
+        sensitive_features, id_feature, target_feature
+    """
     accuracy_demographics = []
     model = model.load_model()
 
     data_valid = data_valid.load_dataset()
-    # Get the feature matrix (X), target labels (y), and demographic data
     X_test, y_test, dem_test = split_demographic_data_from_df(
         data_valid, config.sensitive_features, config.id_feature, config.target_feature
     )
@@ -258,124 +261,265 @@ def model_evaluation_accuracy_demographic_groups(
 
     for sensitive_feat in config.sensitive_features:
         logging.info(f"---- ACCURACY BY {sensitive_feat} ----")
-        # Calculate accuracy for each gender group
         dem_test = dem_test.reset_index(drop=True)
         for group in dem_test[sensitive_feat].unique():
-            # Get the indices of the samples belonging to the current group
             idx_group = dem_test[dem_test[sensitive_feat] == group].index
             if group is None:
                 continue
-            # Calculate the accuracy for the current group
             acc = accuracy_score(y_test[idx_group], y_pred_test[idx_group])
             accuracy_demographics += [
                 [f"Accuracy by {sensitive_feat}", group, "%.3f" % acc]
             ]
 
-    artifact_output_path = "./artifacts"
-    if not os.path.exists(artifact_output_path):
-        os.makedirs(artifact_output_path)
     acc_demographics_df = pd.DataFrame(
         accuracy_demographics,
         columns=["Accuracy type", "Accuracy Type Group", "Accuracy Value"],
-    )
-    acc_demographics_df.to_json(
-        os.path.join(artifact_output_path, "accuracy_demographic_groups.json")
     )
     report.save_report(acc_demographics_df)
     return report
 
 
-def calculate_success_rate(data: Data, config: Configuration, model: Model):
-    pass
+def calculate_success_rate(
+    data: Data, config: Configuration, model: Model, report: Report
+) -> Report:
+    """Computes the proportion of positive predictions for each group within group_col.
+
+    Config attributes:
+        sensitive_features, id_feature, target_feature, group_col
+    """
+    model_obj = model.load_model()
+    data_df = data.load_dataset()
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_df, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    y_pred = model_obj.predict(X_test)
+    dem_test = dem_test.reset_index(drop=True)
+
+    data_df = data_df.copy()
+    data_df["Pred"] = y_pred
+
+    pred_by_group = data_df.groupby(config.group_col)["Pred"].mean().reset_index()
+    pred_by_group.columns = ["Group", "Success Rate"]
+
+    report.save_report(pred_by_group)
+    return report
 
 
-def calculate_statistical_parity(data: Data, config: Configuration, model: Model):
-    # Evaluation metrics based on the True Positive Rate of the model for each group within the sensitive features
-    pass
+def calculate_statistical_parity(
+    data: Data, config: Configuration, model: Model, report: Report
+) -> Report:
+    """Computes Statistical Parity and Disparate Impact for each group vs group_b_val.
+
+    Config attributes:
+        sensitive_features, id_feature, target_feature, group_col, group_b_val
+    """
+    model_obj = model.load_model()
+    data_df = data.load_dataset()
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_df, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    y_pred = model_obj.predict(X_test)
+    dem_test = dem_test.reset_index(drop=True)
+
+    records = []
+    for group in dem_test[config.group_col].dropna().unique():
+        if group == config.group_b_val:
+            continue
+        group_a = dem_test[config.group_col] == group
+        group_b = dem_test[config.group_col] == config.group_b_val
+        sp_val = float(statistical_parity(group_a, group_b, y_pred))
+        di_val = float(disparate_impact(group_a, group_b, y_pred))
+        records.append({
+            "Group": f"{group} vs {config.group_b_val}",
+            "Statistical Parity": round(sp_val, 2),
+            "Disparate Impact": round(di_val, 2),
+            "SP Fair (-0.1, 0.1)": -0.1 <= sp_val <= 0.1,
+            "DI Fair (0.8, 1.2)": 0.8 <= di_val <= 1.2,
+        })
+
+    sp_df = pd.DataFrame(records)
+    report.save_report(sp_df)
+    return report
 
 
-def confusion_matrices():
-    pass
+def confusion_matrices(
+    data: Data, config: Configuration, model: Model, report: Report
+) -> Report:
+    """Plots per-group confusion matrices and saves True Positive Rates to report.
+
+    Config attributes:
+        sensitive_features, id_feature, target_feature, group_col
+    """
+    model_obj = model.load_model()
+    data_df = data.load_dataset()
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_df, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    y_pred = model_obj.predict(X_test)
+    dem_test = dem_test.reset_index(drop=True)
+
+    data_test = data_df.copy()
+    data_test["Label"] = y_test
+    data_test["Pred"] = y_pred
+
+    groups = dem_test[config.group_col].dropna().unique()
+    cms = plot_confusion_matrices(groups, data_test, config.group_col, y_test, y_pred)
+    tprs = calculate_tpr(cms)
+
+    tpr_df = pd.DataFrame(list(tprs.items()), columns=["Group", "TPR"])
+    report.save_report(tpr_df)
+    return report
 
 
-def calculate_equal_opportunity_difference():
-    pass
+def calculate_equal_opportunity_difference(
+    data: Data, config: Configuration, model: Model, report: Report
+) -> Report:
+    """Computes Equal Opportunity Difference (TPR gap) for each group vs group_b_val.
 
+    Config attributes:
+        sensitive_features, id_feature, target_feature, group_col, group_b_val
+    """
+    model_obj = model.load_model()
+    data_df = data.load_dataset()
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_df, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    y_pred = model_obj.predict(X_test)
+    dem_test = dem_test.reset_index(drop=True)
 
-def check_all_fairness_metrics():
-    pass
+    data_test = data_df.copy()
+    data_test["Label"] = y_test
+    data_test["Pred"] = y_pred
+
+    groups = dem_test[config.group_col].dropna().unique()
+    cms = plot_confusion_matrices(groups, data_test, config.group_col, y_test, y_pred)
+    tprs = calculate_tpr(cms)
+
+    tpr_ref = tprs.get(config.group_b_val, np.nan)
+    records = []
+    for group in groups:
+        if group == config.group_b_val:
+            continue
+        eod_val = float(tprs.get(group, np.nan) - tpr_ref)
+        records.append({
+            "Group": f"{group} vs {config.group_b_val}",
+            "TPR": round(float(tprs.get(group, np.nan)), 3),
+            "EOD": round(eod_val, 2),
+            "Fair (-0.1, 0.1)": -0.1 <= eod_val <= 0.1,
+        })
+
+    eod_df = pd.DataFrame(records)
+    report.save_report(eod_df)
+    return report
 
 
 ############# Model Validation
 
 
-def model_validation_baseline(report: Report, config: Configuration, status: Status):
-    pass
+def model_validation_baseline(
+    report: Report, config: Configuration, status: Status
+) -> Status:
+    """Checks all fairness metrics in the report against configurable thresholds.
+
+    Config attributes:
+        sp_bounds (optional, default (-0.1, 0.1)),
+        di_bounds (optional, default (0.8, 1.2)),
+        eod_bounds (optional, default (-0.1, 0.1))
+    """
+    metrics_df = report.load_report()
+    if metrics_df is None:
+        status.change_status(False)
+        return status
+
+    sp_bounds = getattr(config, "sp_bounds", (-0.1, 0.1))
+    di_bounds = getattr(config, "di_bounds", (0.8, 1.2))
+    eod_bounds = getattr(config, "eod_bounds", (-0.1, 0.1))
+
+    all_pass = True
+    for _, row in metrics_df.iterrows():
+        metric, value = row["Metric"], row["Value"]
+        if "Statistical Parity" in metric:
+            if not (sp_bounds[0] <= value <= sp_bounds[1]):
+                all_pass = False
+        elif "Disparate Impact" in metric:
+            if not (di_bounds[0] <= value <= di_bounds[1]):
+                all_pass = False
+        elif "Average Odds" in metric or "Equal Opportunity" in metric:
+            if not (eod_bounds[0] <= value <= eod_bounds[1]):
+                all_pass = False
+
+    status.change_status(all_pass)
+    return status
 
 
-def check_all_fairness_metrics():
-    pass
+def check_all_fairness_metrics(report: Report, config: Configuration) -> dict:
+    """Returns a dict of metric name → pass/fail for all fairness metrics in the report.
+
+    Config attributes:
+        sp_bounds (optional), di_bounds (optional), eod_bounds (optional)
+    """
+    metrics_df = report.load_report()
+    if metrics_df is None:
+        return {}
+
+    sp_bounds = getattr(config, "sp_bounds", (-0.1, 0.1))
+    di_bounds = getattr(config, "di_bounds", (0.8, 1.2))
+    eod_bounds = getattr(config, "eod_bounds", (-0.1, 0.1))
+
+    results = {}
+    for _, row in metrics_df.iterrows():
+        metric, value = row["Metric"], row["Value"]
+        if "Statistical Parity" in metric:
+            results[metric] = bool(sp_bounds[0] <= value <= sp_bounds[1])
+        elif "Disparate Impact" in metric:
+            results[metric] = bool(di_bounds[0] <= value <= di_bounds[1])
+        elif "Average Odds" in metric or "Equal Opportunity" in metric:
+            results[metric] = bool(eod_bounds[0] <= value <= eod_bounds[1])
+    return results
 
 
 ############################################################## Bias Mitigation techniques
 
 
-def bias_mitigation_in_process_train(data: Data, config: Configuration, report: Report):
-    data = data.get_dataset()
-    # Split the data into training and testing sets (70% training, 30% testing)
+def bias_mitigation_in_process_train(
+    data: Data, config: Configuration, report: Report
+) -> Report:
+    """In-processing bias mitigation using Grid Search Reduction (Agarwal et al., 2018).
+
+    Trains a RidgeClassifier wrapped in GridSearchReduction to enforce demographic parity
+    during the training procedure itself.
+
+    Config attributes:
+        test_size, random_state, sensitive_features, id_feature, target_feature,
+        group_col, group_a_val, group_b_val
+    """
+    data_df = data.load_dataset()
     data_train, data_test = train_test_split(
-        data, test_size=config.test_size, random_state=config.random_state
+        data_df, test_size=config.test_size, random_state=config.random_state
     )
-    train_dataset = mlflow.data.from_pandas(data_train, name="train")
-    test_dataset = mlflow.data.from_pandas(data_test, name="test")
+    X_train, y_train, dem_train = split_demographic_data_from_df(
+        data_train, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    X_test, y_test, dem_test = split_demographic_data_from_df(
+        data_test, config.sensitive_features, config.id_feature, config.target_feature
+    )
 
-    # Get the feature matrix (X), target labels (y), and demographic data for both sets
-    X_train, y_train, dem_train = split_data_from_df(data_train)
-    X_test, y_test, dem_test = split_data_from_df(data_test)
+    group_a_train = dem_train[config.group_col] == config.group_a_val
+    group_b_train = dem_train[config.group_col] == config.group_b_val
+    group_a_test = dem_test[config.group_col] == config.group_a_val
+    group_b_test = dem_test[config.group_col] == config.group_b_val
 
-    sample_weights = data_train["sample_weights"]
-    with mlflow.start_run():
-        # Train the model using the sample weights calculated through reweighing
-        model = RidgeClassifier(random_state=config.random_state)
-        model.fit(
-            X_train, y_train, sample_weight=sample_weights.ravel()
-        )  # Fit model with sample weights
+    base_model = RidgeClassifier(random_state=config.random_state)
+    gsr = GridSearchReduction()
+    gsr.transform_estimator(base_model)
+    gsr.fit(X_train, y_train, group_a_train, group_b_train)
 
-        y_pred_test = model.predict(X_test)
+    y_pred_test = gsr.predict(X_test)
+    group_label = f"{config.group_a_val} vs {config.group_b_val}"
+    metrics_gsr = get_metrics(group_a_test, group_b_test, y_pred_test, y_test, group_label)
 
-        # Define the groupings for fairness analysis (Black and White) in the test set
-        group_a_test = dem_test["Ethnicity"] == "Black"
-        group_b_test = dem_test["Ethnicity"] == "White"
-
-        # Get the fairness and accuracy metrics after applying reweighing
-        metrics_rw = get_metrics_classifier(
-            group_a_test, group_b_test, y_pred_test, y_test
-        )
-        print(metrics_rw)
-
-        mlflow.log_param("model_type", "RidgeClassifier_SampleWeights")
-        model_info = mlflow.sklearn.log_model(
-            sk_model=model,
-            name="RidgeClassifier_SampleWeights",
-            registered_model_name="RidgeClassifier_SampleWeights",
-            input_example=X_train,
-        )
-        mlflow.log_metrics(
-            metrics={metric.Metric: metric.Value for metric in metrics_rw.itertuples()},
-            dataset=train_dataset,
-            model_id=model_info.model_id,
-        )
-
-        # Add a 'mitigation' column to both metrics dataframes to label them accordingly
-        metrics_orig = pd.read_csv(
-            "metrics_accuracy.csv"
-        )  # TODO: read as input Report artifact
-        metrics_orig["mitigation"] = "None"
-        metrics_rw["mitigation"] = "Reweighing"
-
-        metrics = pd.concat([metrics_orig, metrics_rw], axis=0, ignore_index=True)
-        print(metrics)
-        compare_metrics(metrics)
+    report.save_report(metrics_gsr)
+    return report
 
 
 ############################################################## Explainability
@@ -393,54 +537,49 @@ def explain_model_predictions(
 
 
 def post_process_bias_mitigation_eq_odds(
-    data_test: Data, model: Model, config: Configuration
-):
-    # Split Testing set to have a post-processor 'Training'
+    data_test: Data, model: Model, config: Configuration, report: Report
+) -> Report:
+    """Post-processing bias mitigation using Equalized Odds (Hardt et al., 2016).
+
+    Splits the test set into a post-processor calibration split and an evaluation split,
+    fits EqualizedOdds on calibration predictions, then adjusts evaluation predictions.
+
+    Config attributes:
+        sensitive_features, id_feature, target_feature, group_col, group_a_val, group_b_val,
+        pp_test_size (optional, default 0.4), random_state (optional, default 42)
+    """
+    model_obj = model.load_model()
+    data_df = data_test.load_dataset()
+    pp_test_size = getattr(config, "pp_test_size", 0.4)
+    random_state = getattr(config, "random_state", 42)
+
     data_pp_train, data_pp_test = train_test_split(
-        data_test.load_dataset(), test_size=0.4, random_state=42
+        data_df, test_size=pp_test_size, random_state=random_state
     )
-    X_pp_train, y_pp_train, dem_pp_train = split_data_from_df(data_pp_train)
-    X_pp_test, y_pp_test, dem_pp_test = split_data_from_df(data_pp_test)
+    X_pp_train, y_pp_train, dem_pp_train = split_demographic_data_from_df(
+        data_pp_train, config.sensitive_features, config.id_feature, config.target_feature
+    )
+    X_pp_test, y_pp_test, dem_pp_test = split_demographic_data_from_df(
+        data_pp_test, config.sensitive_features, config.id_feature, config.target_feature
+    )
 
-    group_a_pp_train = dem_pp_train["gender"] == "female"
-    group_b_pp_train = dem_pp_train["gender"] == "male"
-    group_a_pp_test = dem_pp_test["gender"] == "female"
-    group_b_pp_test = dem_pp_test["gender"] == "male"
+    group_a_pp_train = dem_pp_train[config.group_col] == config.group_a_val
+    group_b_pp_train = dem_pp_train[config.group_col] == config.group_b_val
+    group_a_pp_test = dem_pp_test[config.group_col] == config.group_a_val
+    group_b_pp_test = dem_pp_test[config.group_col] == config.group_b_val
 
-    # Fit processor on the 'training' data
-    eq = EqualizedOdds(solver="highs", seed=42)
-    fit_params = {
-        "group_a": group_a_pp_train,
-        "group_b": group_b_pp_train,
-    }
-    y_pred_pp_train = model.predict(X_pp_train)
+    eq = EqualizedOdds(solver="highs", seed=random_state)
+    y_pred_pp_train = model_obj.predict(X_pp_train)
+    eq.fit(y_pp_train, y_pred_pp_train, group_a=group_a_pp_train, group_b=group_b_pp_train)
 
-    eq.fit(y_pp_train, y_pred_pp_train, **fit_params)
+    y_pred_pp_test = model_obj.predict(X_pp_test)
+    d = eq.transform(y_pred_pp_test, group_a=group_a_pp_test, group_b=group_b_pp_test)
+    y_pred_adjusted = d["y_pred"]
 
-    # Apply Processor to Predictions from 'Test' Data
-    fit_params = {
-        "group_a": group_a_pp_test,  # Define the first group (e.g., 'Black' candidates)
-        "group_b": group_b_pp_test,  # Define the second group (e.g., 'White' candidates)
-    }
-
-    y_pred_pp_test = model.predict(X_pp_test)  # Predict the labels for the test set
-
-    d = eq.transform(
-        y_pred_pp_test, **fit_params
-    )  # Apply equalized odds processor to the predictions
-
-    # Extract the new predictions after applying the fairness processor
-    y_pred_pp_new = d["y_pred"]
-
-    # Evaluate and Plot Metrics
-    metrics_eq = get_metrics(
-        group_a_pp_test, group_b_pp_test, y_pred_pp_new, y_pp_test, "Gender"
-    )  # Get fairness metrics
-    display(metrics_eq)  # Display the fairness metrics
-
-    metrics_orig["mitigation"] = "None"
-    metrics_eq["mitigation"] = "Equalized Odds"
-    metrics = pd.concat([metrics_orig, metrics_eq], axis=0, ignore_index=True)
+    group_label = f"{config.group_a_val} vs {config.group_b_val}"
+    metrics_eq = get_metrics(group_a_pp_test, group_b_pp_test, y_pred_adjusted, y_pp_test, group_label)
+    report.save_report(metrics_eq)
+    return report
 
 
 ############################################################## Robustness
@@ -453,13 +592,9 @@ def robustness_evaluation():
     from art.estimators.classification import LightGBMClassifier
     from art.utils import load_mnist
 
-    # Step 1: Load the MNIST dataset
-
     (x_train, y_train), (x_test, y_test), min_pixel_value, max_pixel_value = (
         load_mnist()
     )
-
-    # Step 1a: Flatten dataset
 
     x_test = x_test[0:5]
     y_test = y_test[0:5]
@@ -468,8 +603,6 @@ def robustness_evaluation():
     nb_samples_test = x_test.shape[0]
     x_train = x_train.reshape((nb_samples_train, 28 * 28))
     x_test = x_test.reshape((nb_samples_test, 28 * 28))
-
-    # Step 2: Create the model
 
     params = {
         "objective": "multiclass",
@@ -483,17 +616,9 @@ def robustness_evaluation():
         params=params, train_set=train_set, num_boost_round=100, valid_sets=[test_set]
     )
 
-    # Step 3: Create the ART classifier
-
     classifier = LightGBMClassifier(
         model=model, clip_values=(min_pixel_value, max_pixel_value)
     )
-
-    # Step 4: Train the ART classifier
-
-    # The model has already been trained in step 2
-
-    # Step 5: Evaluate the ART classifier on benign test examples
 
     predictions = classifier.predict(x_test)
     accuracy = np.sum(
@@ -501,7 +626,6 @@ def robustness_evaluation():
     ) / len(y_test)
     print("Accuracy on benign test examples: {}%".format(accuracy * 100))
 
-    # Step 6: Generate adversarial test examples
     attack = ZooAttack(
         classifier=classifier,
         confidence=0.5,
@@ -519,8 +643,6 @@ def robustness_evaluation():
     )
     x_test_adv = attack.generate(x=x_test)
 
-    # Step 7: Evaluate the ART classifier on adversarial test examples
-
     predictions = classifier.predict(x_test_adv)
     accuracy = np.sum(
         np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)
@@ -528,64 +650,7 @@ def robustness_evaluation():
     print("Accuracy on adversarial test examples: {}%".format(accuracy * 100))
 
 
-######################################################## utils
 
-
-def split_demographic_data_from_df(
-    data, sensitive_features, id_feature, target_feature
-):
-    """
-    Splits a DataFrame into features (X), labels (y), and demographic data (dem).
-    """
-    filter_col = sensitive_features
-    features = data.drop(columns=[id_feature, target_feature] + filter_col).columns
-    y = data[target_feature].values  # Extract labels
-    X = data[features].values  # Extract features
-    dem = data[filter_col].copy()  # Extract demographics
-    return X, y, dem  # Return features, labels, demographics
-
-
-def get_metrics(group_a, group_b, y_pred, y_true, group_label):
-    """
-    Function to calculate and return model accuracy and fairness metrics for two groups
-    Returns a DataFrame of model accuracy and fairness metrics for two groups.
-    """
-    metrics = [
-        ["Model Accuracy", round(accuracy_score(y_true, y_pred), 2), 1]
-    ]  # Calculate accuracy
-    metrics += [
-        ["Precision", round(precision_score(y_true, y_pred), 2), 1]
-    ]  # Calculate precision: Of the predited positives (TP + FP), how many are correctly predicted
-    metrics += [
-        ["Recall", round(recall_score(y_true, y_pred), 2), 1]
-    ]  # Calculate recall: Of the actual positives (TP + FN), how many were correctly predicted
-    metrics += [
-        ["F1 Score", round(f1_score(y_true, y_pred), 2), 1]
-    ]  # Calculate f1-score
-    metrics += [
-        [
-            f"{group_label} Disparate Impact",
-            round(disparate_impact(group_a, group_b, y_pred), 2),
-            1,
-        ]
-    ]  # Calculate disparate impact
-    metrics += [
-        [
-            f"{group_label} Statistical Parity",
-            round(statistical_parity(group_a, group_b, y_pred), 2),
-            0,
-        ]
-    ]  # Calculate statistical parity
-    metrics += [
-        [
-            f"{group_label} Average Odds Difference",
-            round(average_odds_diff(group_a, group_b, y_pred, y_true), 2),
-            0,
-        ]
-    ]  # Calculate average odds difference
-    return pd.DataFrame(
-        metrics, columns=["Metric", "Value", "Reference"]
-    )  # Return metrics as DataFrame
 
 
 if __name__ == "__main__":
@@ -597,31 +662,30 @@ if __name__ == "__main__":
             "random_state": 4,
             "model_filepath": "model_baseline.pickle",
             "sensitive_features": ["nationality", "gender"],
+            "id_feature": "Id",
+            "target_feature": "decision",
+            "group_col": "nationality",
+            "group_a_val": "Dutch",
+            "group_b_val": "Belgian",
         }
     )
-    config_metrics_report = Configuration(
-        config={"sensitive_features": ["nationality", "gender"]}
-    )
     model = Model(model_path="artifacts/model/model_baseline.pickle")
-    report_accuracy_filepath = os.path.join(
-        REPORT_ARTIFACTS_PATH, "report_accuracy_demographics.csv"
-    )
-    report_accuracy = Report(filepath=report_accuracy_filepath)
-    report_filepath = os.path.join(
-        REPORT_ARTIFACTS_PATH, "report_accuracy_demographics2.csv"
-    )
+    report_filepath = os.path.join(REPORT_ARTIFACTS_PATH, "report_accuracy_demographics.csv")
     report = Report(filepath=report_filepath)
-    report_validation_model = Report(
-        filepath=os.path.join(
-            REPORT_ARTIFACTS_PATH, "model_performance_metrics_demographic_report.csv"
-        )
-    )
     status = Status(
-        status.status_key, os.path.join(STATUS_ARTIFACTS_PATH, "model_validation.json")
+        "model_validation", os.path.join(STATUS_ARTIFACTS_PATH, "model_validation.json")
     )
 
     train_model(data, config_model)
     # model_evaluation_accuracy(data_testing, config_model, model, report)
-    # model_evaluation_accuracy_mlflow(data_testing, config_metrics_report, model, report_accuracy)
-    # model_evaluation_accuracy_demographic_groups(data_testing, config_metrics_report, model, report)
-    # model_validation_baseline(report, config: Configuration, status: Status)
+    # model_evaluation_accuracy_demographic_groups(model, data_testing, config_model, report)
+    # calculate_success_rate(data_testing, config_model, model, report)
+    # calculate_statistical_parity(data_testing, config_model, model, report)
+    # confusion_matrices(data_testing, config_model, model, report)
+    # calculate_equal_opportunity_difference(data_testing, config_model, model, report)
+    # check_all_fairness_metrics(report, config_model)
+    # model_validation_baseline(report, config_model, status)
+    # train_model_reweighing(data, config_model)
+    # bias_mitigation_in_process_train(data, config_model, report)
+    # post_process_bias_mitigation_eq_odds(data_testing, model, config_model, report)
+    # permutation_feature_importance(data_testing, model, config_model, report)

@@ -31,6 +31,17 @@ def split_data_from_df(data, sensitive_features):
     dem = data[filter_col].copy()  # Extract demographics
     return X, y, dem  # Return features, labels, demographics
 
+def split_demographic_data_from_df(
+    data, sensitive_features, id_feature, target_feature
+):
+    """Splits a DataFrame into features (X), labels (y), and demographic data (dem)."""
+    filter_col = sensitive_features
+    features = data.drop(columns=[id_feature, target_feature] + filter_col).columns
+    y = data[target_feature].values
+    X = data[features].values
+    dem = data[filter_col].copy()
+    return X, y, dem
+
 
 def get_metrics_classifier(group_a, group_b, y_pred, y_true, group_label):
     """
