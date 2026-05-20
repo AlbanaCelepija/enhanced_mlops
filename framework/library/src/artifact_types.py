@@ -10,9 +10,12 @@ class Data():
     """
     Base class for data artifacts. Subclasses should implement specific behavior.
     """
-    def __init__(self, filepath):
-        self.filepath = filepath
-        self.filetype = filepath.split(".")[-1] if "." in filepath else None
+    def __init__(self, config: dict):
+        for key, value in config.items():
+            setattr(self, key, value)
+        self.filepath = config.get("filepath")
+        self.filetype = self.filepath.split(".")[-1] if self.filepath and "." in self.filepath else None
+        
 
     def load_dataset(self):
         """Load dataset. Must be implemented by subclasses."""
@@ -28,23 +31,20 @@ class Report:
     Structured information about the results obtained after applying a function
     """
 
-    def __init__(self, filepath):
-        self.filepath = filepath
-        self.filetype = filepath.split(".")[-1]
+    def __init__(self, config: dict):
+        for key, value in config.items():
+            setattr(self, key, value)
+        self.filepath = config.get("filepath")
+        self.filetype = self.filepath.split(".")[-1] if self.filepath and "." in self.filepath else None
+        
 
     def load_report(self):
-        if os.path.isfile(self.filepath):
-            if self.filetype == "csv":
-                return pd.read_csv(self.filepath)
-            elif self.filetype == "json":
-                return pd.read_json(self.filepath)
-        return None
+        """Must be implemented by subclasses."""
+        pass
 
-    def save_report(self, dataframe):
-        if self.filetype == "csv":
-            dataframe.to_csv(self.filepath)
-        elif self.filetype == "json":
-            dataframe.to_json(self.filepath)
+    def save_report(self, report):
+        """Save report. Must be implemented by subclasses."""
+        pass
 
 
 class Model:

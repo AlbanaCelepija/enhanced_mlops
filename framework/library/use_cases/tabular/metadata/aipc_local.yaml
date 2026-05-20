@@ -317,15 +317,21 @@ operations:
 artifacts:
   data:
     - name: hiring_data_original
-      filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
+      spec:
+        filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
+        resulting_filepath: data_processed.csv
     - name: hiring_data_processed
-      filepath: data_processed.parquet
+      spec:
+        filepath: data_processed.csv
     - name: hiring_data_training
-      filepath: data_training.parquet
+      spec:
+        filepath: data_training.csv
     - name: hiring_data_testing
-      filepath: data_testing.parquet
+      spec:
+        filepath: data_testing.csv
     - name: hiring_data_reweighed
-      filepath: data_reweighed.parquet
+      spec:
+        filepath: data_reweighed.csv
   model:
     - name: model_baseline
       version: latest
@@ -381,17 +387,23 @@ artifacts:
         actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
   report:
     - name: data_profiling_report
-      filepath: artifacts/report/data_drift.html    
+      spec:
+        filepath: data_drift.html    
     - name: model_metrics_report
-      filepath: model_metrics_report.csv
+      spec:
+        filepath: model_metrics_report.csv
     - name: model_performance_metrics_demographic_report
-      filepath: model_performance_metrics_demographic_report.csv
+      spec:
+        filepath: model_performance_metrics_demographic_report.csv
     - name: model_eval_EOutcome_report
-      filepath: model_eval_EOutcome_report.csv
+      spec:
+        filepath: model_eval_EOutcome_report.csv
     - name: model_eval_EOpportunity_report
-      filepath: model_eval_EOpportunity_report.csv
+      spec:
+        filepath: model_eval_EOpportunity_report.csv
     - name: data_profiling_custom_report
-      filepath: data_profiling_custom_report.json
+      spec:
+        filepath: data_profiling_custom_report.json
   status:
     - name: model_validation_baseline
       status_file: model_validation.json

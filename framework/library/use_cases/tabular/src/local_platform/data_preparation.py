@@ -1,13 +1,12 @@
 import os
 import json
-import gdown
 import pickle
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from typing import List, Dict, Any, Tuple
 from library.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
-from library.use_cases.tabular.src.local_platform.platform_artifacts import DataTabular
-from library.use_cases.tabular.src.local_platform.utils import *
+from library.use_cases.tabular.src.local_platform.platform_artifacts import DataTabular, ReportTabular
 
 # from holisticai.bias.mitigation import Reweighing
 from sklearn.model_selection import train_test_split
@@ -15,6 +14,11 @@ from sklearn.preprocessing import OneHotEncoder
 
 # data profiling
 from ydata_profiling import ProfileReport
+
+# evidently data profiling
+from evidently.core.report import Report as EvidentlyReport
+from evidently.metrics import ColumnCount, RowCount, DuplicatedRowCount
+from evidently.presets import ValueStats
 
 
 """ 
@@ -31,17 +35,37 @@ FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
 REPORTS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "report")
 
-def load_data(config: Configuration):
-    gdown.download(config.url, config.original_filepath, quiet=False)
-    # load data and remove all NaN values
-    with open(config.original_filepath, "rb") as handle:
-        raw_data = pickle.load(handle)
-    data = raw_data.dropna()
-    data = data.rename(columns={i: str(i) for i in range(500)})
+def load_data(data: Data) -> Data:    
+    data = DataTabular(data.__dict__)
+    print(data.__dict__)
+    dataset = data.load_dataset()
+    print(dataset)
+    dataset.drop("Id", axis=1, inplace=True)
+    data.log_dataset(dataset)
+    return data
     
 
-def data_profiling(data: Data, report: Report) -> Report:
-    pass
+def data_profiling_evidently(data: Data, report: Report) -> Report:
+    """Profile tabular data using Evidently: dataset-level stats + per-column ValueStats."""
+    tabular = DataTabular(data.__dict__)
+    df = tabular.load_dataset()
+
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+    per_column_metrics = [ValueStats(col) for col in numeric_cols + categorical_cols]
+    ev_report = EvidentlyReport(
+        [
+            ColumnCount(),
+            RowCount(),
+            DuplicatedRowCount(),
+            *per_column_metrics,
+        ]
+    )
+    snapshot = ev_report.run(df, None)
+    report = ReportTabular(report.__dict__)
+    report.save_report_stats(snapshot)  
+    return report
 
 
 def data_validation_check_quantity(data: Data, config: Configuration, output_status: Status) -> Status:
@@ -126,7 +150,7 @@ def data_profiling_custom(
     data: Data, 
     config: Configuration
     ):
-    data = DataTabular(filepath=data.filepath)
+    data = DataTabular(data.__dict__)
     df = data.load_dataset()
     results = []
     for act in config.actions.split(","):
@@ -263,27 +287,3 @@ def data_drift_status(data: Data, output_status: Status):
     output_status.change_status(final_status)
     return output_status
 
-
-
-if __name__ == "__main__":
-    import yaml
-
-    with open(
-        "/home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/metadata/aipc_local.yaml",
-        "r",
-    ) as f:
-        aipc_config = yaml.safe_load(f)
-    profiling_actions = list(
-        filter(
-            lambda x: x["name"] == "profiling_actions",
-            aipc_config["artifacts"]["configuration"],
-        )
-    )
-    data = Data(
-        filepath=os.path.join(DATA_ARTIFACTS_PATH, "recruitmentdataset-2022.csv")
-    )
-    config = Configuration(config={"resulting_filepath": "data2.parquet"})
-    profiling_config = Configuration(config=profiling_actions[0]["config"])
-
-    # load_data(data, config)
-    data_profiling_custom(data, profiling_config)

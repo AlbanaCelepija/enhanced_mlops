@@ -35,8 +35,6 @@ from sklearn.metrics import (
 )
 from lightgbm import LGBMClassifier
 
-# import mlflow
-# import mlflow.sklearn
 
 logging.basicConfig(level=logging.INFO)
 
