@@ -1,0 +1,13 @@
+# for data preprocessing
+ydata-profiling
+ydata-synthetic
+
+# for modelling
+fairlearn
+seaborn
+scikit-learn
+
+# for fairness
+aequitas-fairlib
+
+# for methodology

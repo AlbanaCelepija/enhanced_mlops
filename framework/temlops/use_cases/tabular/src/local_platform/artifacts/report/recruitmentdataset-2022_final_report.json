@@ -1,0 +1,167 @@
+{
+  "actions": "summary, dtypes, missing_values, unique_values, correlations, histograms, outliers",
+  "results": [
+    {
+      "action": "summary",
+      "n_rows": 4000,
+      "n_cols": 15,
+      "memory_mb": 1.5357694625854492
+    },
+    {
+      "action": "dtypes",
+      "dtypes": {
+        "Id": "object",
+        "gender": "object",
+        "age": "int64",
+        "nationality": "object",
+        "sport": "object",
+        "ind-university_grade": "int64",
+        "ind-debateclub": "bool",
+        "ind-programming_exp": "bool",
+        "ind-international_exp": "bool",
+        "ind-entrepeneur_exp": "bool",
+        "ind-languages": "int64",
+        "ind-exact_study": "bool",
+        "ind-degree": "object",
+        "company": "object",
+        "decision": "bool"
+      }
+    },
+    {
+      "action": "missing_values",
+      "missing_count": {
+        "Id": 0,
+        "gender": 0,
+        "age": 0,
+        "nationality": 0,
+        "sport": 0,
+        "ind-university_grade": 0,
+        "ind-debateclub": 0,
+        "ind-programming_exp": 0,
+        "ind-international_exp": 0,
+        "ind-entrepeneur_exp": 0,
+        "ind-languages": 0,
+        "ind-exact_study": 0,
+        "ind-degree": 0,
+        "company": 0,
+        "decision": 0
+      },
+      "missing_pct": {
+        "Id": 0.0,
+        "gender": 0.0,
+        "age": 0.0,
+        "nationality": 0.0,
+        "sport": 0.0,
+        "ind-university_grade": 0.0,
+        "ind-debateclub": 0.0,
+        "ind-programming_exp": 0.0,
+        "ind-international_exp": 0.0,
+        "ind-entrepeneur_exp": 0.0,
+        "ind-languages": 0.0,
+        "ind-exact_study": 0.0,
+        "ind-degree": 0.0,
+        "company": 0.0,
+        "decision": 0.0
+      }
+    },
+    {
+      "action": "unique_values",
+      "unique": {
+        "Id": {
+          "unique_count": 4000
+        },
+        "gender": {
+          "unique_count": 3
+        },
+        "age": {
+          "unique_count": 12
+        },
+        "nationality": {
+          "unique_count": 3
+        },
+        "sport": {
+          "unique_count": 8
+        },
+        "ind-university_grade": {
+          "unique_count": 33
+        },
+        "ind-debateclub": {
+          "unique_count": 2
+        },
+        "ind-programming_exp": {
+          "unique_count": 2
+        },
+        "ind-international_exp": {
+          "unique_count": 2
+        },
+        "ind-entrepeneur_exp": {
+          "unique_count": 2
+        },
+        "ind-languages": {
+          "unique_count": 4
+        },
+        "ind-exact_study": {
+          "unique_count": 2
+        },
+        "ind-degree": {
+          "unique_count": 3
+        },
+        "company": {
+          "unique_count": 4
+        },
+        "decision": {
+          "unique_count": 2
+        }
+      }
+    },
+    {
+      "action": "correlations",
+      "correlation_head": {
+        "age": {
+          "age": 1.0,
+          "ind-university_grade": -0.24,
+          "ind-languages": 0.006
+        },
+        "ind-university_grade": {
+          "age": -0.24,
+          "ind-university_grade": 1.0,
+          "ind-languages": -0.142
+        },
+        "ind-languages": {
+          "age": 0.006,
+          "ind-university_grade": -0.142,
+          "ind-languages": 1.0
+        }
+      },
+      "correlation_csv": "recruitmentdataset-2022_correlation.csv"
+    },
+    {
+      "action": "histograms",
+      "histograms": [
+        "/home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/temlops/use_cases/tabular/src/local_platform/artifacts/report/recruitmentdataset-2022_hist_age.png",
+        "/home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/temlops/use_cases/tabular/src/local_platform/artifacts/report/recruitmentdataset-2022_hist_ind-university_grade.png",
+        "/home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/temlops/use_cases/tabular/src/local_platform/artifacts/report/recruitmentdataset-2022_hist_ind-languages.png"
+      ]
+    },
+    {
+      "action": "outliers",
+      "outliers": {
+        "age": {
+          "n_outliers": 0,
+          "low": 18.0,
+          "high": 34.0
+        },
+        "ind-university_grade": {
+          "n_outliers": 0,
+          "low": 44.5,
+          "high": 80.5
+        },
+        "ind-languages": {
+          "n_outliers": 0,
+          "low": -0.5,
+          "high": 3.5
+        }
+      }
+    }
+  ]
+}

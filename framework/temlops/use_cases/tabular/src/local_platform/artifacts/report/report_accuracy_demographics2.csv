@@ -1,0 +1,8 @@
+,Accuracy type,Accuracy Type Group,Accuracy Value
+0,Overall Accuracy,All,0.733
+1,Accuracy by gender,female,0.764
+2,Accuracy by gender,male,0.709
+3,Accuracy by gender,other,0.667
+4,Accuracy by ethnicity,Dutch,0.732
+5,Accuracy by ethnicity,Belgian,0.754
+6,Accuracy by ethnicity,German,0.717

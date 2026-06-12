@@ -1,0 +1,47 @@
+domain: QA
+data_modality: tabular
+ai_task: classification
+ai_product_name: Spec Test Quantity Validator
+ai_product_description: Validate data quantity using Great Expectations before downstream lifecycle stages.
+framework: local
+operations:
+  - type: data_profiling
+    stage: data_preparation
+    id: data_profiling_quantity_ge
+    name: Data profiling quantity validation with Great Expectations
+    requirement_dimension: baseline
+    implementation:
+      framework: local
+      spec:
+        path: src/local_platform/data_preparation.py
+        method_name: data_profiling_quantity_ge
+        requirements: requirements.txt
+        inputs:
+          - data: spec_test_input_data
+          - configuration: profiling_quantity_thresholds
+        outputs:
+          - report: data_quantity_profile_report
+
+artifacts:
+  data:
+    - name: spec_test_input_data
+      filepath: artifacts/data/data.json
+  configuration:
+    - name: profiling_quantity_thresholds
+      config:
+        min_rows: 3
+        max_rows: 1000
+        report_filepath: artifacts/report/data_quantity_profile_report.json
+  report:
+    - name: data_quantity_profile_report
+      filepath: artifacts/report/data_quantity_profile_report.json
+  documentation:
+    - name: datasheet
+      filepath: docs/Datasheet.md
+
+requirements_dimensions:
+  - baseline
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring
