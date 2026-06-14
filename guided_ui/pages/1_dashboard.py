@@ -9,9 +9,9 @@ current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
 parent_folder = os.path.dirname(parent_folder)
 pipeline_definitions_folder = os.path.join(
-    parent_folder, "framework/library/config/pipeline_definitions.yaml"
+    parent_folder, "framework/temlops/config/pipeline_definitions.yaml"
 )
-USE_CASES_FOLDER = os.path.join(parent_folder, "framework/library/use_cases")
+USE_CASES_FOLDER = os.path.join(parent_folder, "framework/temlops/use_cases")
 use_cases_list = os.listdir(USE_CASES_FOLDER)
 platform_list = ["local", "dh"]
 

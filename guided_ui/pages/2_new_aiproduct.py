@@ -23,7 +23,7 @@ current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
 parent_folder = os.path.dirname(parent_folder)
 pipeline_definitions_folder = os.path.join(
-    parent_folder, "framework/library/config/pipeline_definitions.yaml"
+    parent_folder, "framework/temlops/config/pipeline_definitions.yaml"
 )
 
 # Step 1: definition of the necessary operations (active/inactive ops)
