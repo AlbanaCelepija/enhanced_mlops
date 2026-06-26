@@ -15,7 +15,7 @@ Finally, we have developed a catalog of tools for implementing different require
 
 ```bash
 enhanced_mlops/
-├── framework/        # Core Python library + AI lifecycle implementation
+├── framework/        # Core Python library for AI lifecycle implementation
 ├── guided_ui/        # Streamlit web app for interactive AI product management
 ├── tools_catalog/    # Catalog of open-source MLOps tools (code snippets, notebooks)
 ├── static/           # Images (framework diagram)
@@ -51,7 +51,7 @@ An interactive UI for exploring, creating, and managing AI products aligned with
 - `pages/2_new_aiproduct.py`: Wizard for creating new AI products from the template.
 
 
-## - 3. tools_catalog/ — MLOps Tools Reference
+## 3. tools_catalog/ — MLOps Tools Reference
 A curated catalog of open-source tools for AI requirements:
 
 - `CSV/Excel spreadsheets`: fairness_tools.csv, fairness_metrics.csv, robustness_tools.xlsx, tools_principles_catalog.csv — maps tools to lifecycle operations and requirements.

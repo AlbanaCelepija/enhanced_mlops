@@ -11,6 +11,10 @@ ai_operations:
             -Data
           output: 
             -Report
+          article: 
+            - 10.1
+            - 10.2
+            - 10.3
           desc: "Generate reports with specific characteristics of training data. Its main purpose is to deliver an extended analysis of a dataset while allowing the data analysis to be exported in different formats such as html or json."
       - data_validation:
           input: 
