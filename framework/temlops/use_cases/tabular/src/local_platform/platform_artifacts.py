@@ -59,12 +59,14 @@ class ReportTabular(Report):
         elif self.filetype == "json":
             dataframe.to_json(out_path)
             
-    def save_report_image(self, dataframe):
+    def save_report_image(self, figure):
         out_path = os.path.join(REPORTS_ARTIFACTS_PATH, self.filepath)
-        if self.filetype == "csv":
-            dataframe.to_csv(out_path, index=False)
-        elif self.filetype == "json":
-            dataframe.to_json(out_path)
+        if self.filetype == "html":
+            figure.write_html(out_path)
+        elif hasattr(figure, "write_image"):
+            figure.write_image(out_path)
+        else:
+            figure.savefig(out_path, dpi=300, bbox_inches="tight")
 
 class ModelTabular(Model):
     def __init__(self, model_path):

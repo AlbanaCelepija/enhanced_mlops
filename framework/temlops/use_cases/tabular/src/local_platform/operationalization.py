@@ -1,12 +1,14 @@
 import requests
 from temlops.use_cases.tabular.src.local_platform.utils import *
-from temlops.src.artifact_types import Data, Configuration, Report
+from temlops.src.artifact_types import Data, Configuration, Report, Model
 
 # from kserve import Model, KFServer
 from kserve import RESTConfig, InferenceRESTClient
 import numpy as np
 import joblib
 import pickle
+
+import nannyml as nml
 
 from sklearn.metrics import accuracy_score, confusion_matrix
 
@@ -67,8 +69,78 @@ def data_drift_detection_nannyml():
 
 ################################################################################ Model monitoring
 
-def quantify_concept_drift_impact_on_performance():
-    pass
+def quantify_concept_drift_impact_on_performance(
+    data: Data, model: Model, config: Configuration, report: Report
+) -> Report:
+    """
+    Quantifies the impact of concept drift on model performance using NannyML.
+
+    The input `data` is split into a reference period (assumed unaffected by
+    drift) and an analysis period. CBPE estimates the performance we would
+    expect on the analysis period if the input-output relationship learned by
+    `model` had not changed, and a PerformanceCalculator computes the actually
+    realized performance from ground truth. Plotting the two together exposes
+    the gap caused by concept drift, which is saved as an image report.
+
+    Config attributes:
+        feature_column_names (list[str], required)
+        target_feature (str, required)
+        problem_type (str, optional, default "classification_binary")
+        metrics (list[str], optional, default ["roc_auc"])
+        y_pred_column (str, optional, default "y_pred")
+        y_pred_proba_column (str, optional, default "y_pred_proba")
+        reference_size (float, optional, default 0.5) - fraction of `data`
+            (taken from the start) used as the reference period
+        chunk_size (int, optional, default len(analysis) // 5)
+    """
+    model_obj = model.load_model()
+    df = data.load_dataset()
+
+    feature_cols = config.feature_column_names
+    target_feature = config.target_feature
+    problem_type = getattr(config, "problem_type", "classification_binary")
+    metrics = list(getattr(config, "metrics", ["roc_auc"]))
+    y_pred_col = getattr(config, "y_pred_column", "y_pred")
+    y_pred_proba_col = getattr(config, "y_pred_proba_column", "y_pred_proba")
+    reference_size = getattr(config, "reference_size", 0.5)
+
+    X = df[feature_cols]
+    df[y_pred_col] = model_obj.predict(X)
+    if hasattr(model_obj, "predict_proba"):
+        df[y_pred_proba_col] = model_obj.predict_proba(X)[:, 1]
+    else:
+        df[y_pred_proba_col] = df[y_pred_col].astype(float)
+
+    split_idx = int(len(df) * reference_size)
+    reference_df = df.iloc[:split_idx].reset_index(drop=True)
+    analysis_df = df.iloc[split_idx:].reset_index(drop=True)
+    chunk_size = getattr(config, "chunk_size", max(len(analysis_df) // 5, 1))
+
+    estimator = nml.CBPE(
+        problem_type=problem_type,
+        y_pred_proba=y_pred_proba_col,
+        y_pred=y_pred_col,
+        y_true=target_feature,
+        metrics=metrics,
+        chunk_size=chunk_size,
+    ).fit(reference_df)
+    estimated_performance = estimator.estimate(analysis_df)
+
+    calculator = nml.PerformanceCalculator(
+        problem_type=problem_type,
+        y_pred_proba=y_pred_proba_col,
+        y_pred=y_pred_col,
+        y_true=target_feature,
+        metrics=metrics,
+        chunk_size=chunk_size,
+    ).fit(reference_df)
+    realized_performance = calculator.calculate(analysis_df)
+
+    comparison = estimated_performance.filter(period="analysis").compare(realized_performance)
+    figure = comparison.plot()
+
+    report.save_report_image(figure)
+    return report
 
 
 def measure_magnitude_of_concept_drift():   

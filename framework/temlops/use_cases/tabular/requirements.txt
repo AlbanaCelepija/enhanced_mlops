@@ -39,3 +39,7 @@ kserve
 #mlflow   #  mlflow[extras]  To deploy with MLServer
 mlserver
 mlserver_mlflow
+
+# for model monitoring
+nannyml
+kaleido

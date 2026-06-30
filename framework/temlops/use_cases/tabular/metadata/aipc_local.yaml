@@ -278,7 +278,25 @@ operations:
         inputs:
           - 
         outputs: data_drift_detection
-          - 
+          -
+
+  - type: model_monitoring
+    stage: operationalization
+    id: concept_drift_impact
+    name: Quantify Concept Drift Impact on Model Performance using NannyML
+    requirement_dimension: baseline
+    implementation:
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: quantify_concept_drift_impact_on_performance
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_baseline
+          - config: concept_drift_monitoring_config
+        outputs:
+          - report: concept_drift_impact_report
 
 # TODO system monitoring (telemetry, prometheus, grafana)
   - type: system_monitoring
@@ -385,6 +403,28 @@ artifacts:
       config:
         dataset_name: recruitmentdataset-2022
         actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
+    - name: concept_drift_monitoring_config
+      config:
+        feature_column_names:
+          - age
+          - sport
+          - ind-university_grade
+          - ind-debateclub
+          - ind-programming_exp
+          - ind-international_exp
+          - ind-entrepeneur_exp
+          - ind-languages
+          - ind-exact_study
+          - ind-degree
+          - company
+        target_feature: decision
+        problem_type: classification_binary
+        metrics:
+          - roc_auc
+        y_pred_column: y_pred
+        y_pred_proba_column: y_pred_proba
+        reference_size: 0.5
+        chunk_size: 500
   report:
     - name: data_profiling_report
       config:
@@ -404,6 +444,9 @@ artifacts:
     - name: data_profiling_custom_report
       config:
         filepath: data_profiling_custom_report.json
+    - name: concept_drift_impact_report
+      config:
+        filepath: concept_drift_impact_report.png
   status:
     - name: model_validation_baseline
       status_file: model_validation.json
