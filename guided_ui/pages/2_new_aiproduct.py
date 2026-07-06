@@ -34,10 +34,10 @@ with open(pipeline_definitions_folder, "r") as yaml_file:
 def lifecycle_stages():
     ai_prod_name = st.text_area("AI product name")
     ai_prod_desc = st.text_area("AI product description", value="""Generate code implementation that is able to 
-                                implement data drift detection for a given dataset and append the generated code inside 
-                                the data_preparation.py file of src/local_platform folder inside the specified folder """)
+                                implement data drift detection for a given dataset """)
     st.write("AI system's stages and operations")
-    populate_stages(pipeline_configs, createview=True)
+    selected_operations = populate_stages(pipeline_configs, createview=True)
+    st.session_state["selected_operations"] = selected_operations
     return ai_prod_name, ai_prod_desc
 
 
@@ -64,14 +64,14 @@ def show_new_prod_skeleton():
 #   - generate code snippets based on the selected toolkits for each operation
 async def run_mcp_query(user_input):   
     # Model
-    model = ChatOpenAI(model="gpt-4o-mini") #"gpt-5"
+    model = ChatOpenAI(model="gpt-5") #"gpt-5"
 
     # MCP Client via HTTP
     client = MultiServerMCPClient(
         {
             "mlops_tai_engineers": {
                 "transport": "streamable_http",
-                "url": "http://127.0.0.1:8081/mcp"  
+                "url": "http://127.0.0.1:8082/mcp"  
             },
             "file_system": {
                 "transport": "streamable_http",
@@ -86,6 +86,7 @@ async def run_mcp_query(user_input):
     tool_node = ToolNode(tools)
 
     def should_continue(state: MessagesState):
+        
         messages = state["messages"]
         last_message = messages[-1]
         if last_message.tool_calls:
@@ -116,14 +117,18 @@ async def run_mcp_query(user_input):
 
 # Step 5: generate the new AI product folder structure with the necessary code files and configuration files
 def generate_prod_action(ai_prod_desc):
-    #I need to generate code for data drift detection, put the code snippet generated inside the file data_drift.py inside the specified folder
-
     if st.button("Create AI product skeleton", key=f"generate_product"):        
-        new_prod_folder = os.path.join(parent_folder, "framework/library/use_cases/new_prod")
+        template_aipc_folder = os.path.join(parent_folder, "framework/temlops/aipc_template")
+        new_prod_folder = os.path.join(parent_folder, "framework/temlops/use_cases/new_prod")
         folder = f" FOLDER: {new_prod_folder}"
         os.makedirs(new_prod_folder, exist_ok=True)
         with st.spinner("Thinking..."):
-            answer = asyncio.run(run_mcp_query(ai_prod_desc + folder))
+            selected_ops = st.session_state["selected_operations"]
+            selected_operations = [op for op, selected in selected_ops.items() if selected]
+            plan_prompt = open(f"guided_ui/pages/plan.md", "r").read()
+            ai_prod_desc = f"{plan_prompt}. \n\n Copy recursively the files and subdirectories inside the folder {template_aipc_folder} into the new AI product folder {new_prod_folder}.  \n\n  The selected operations are: {selected_operations}"
+            print(ai_prod_desc)
+            answer = asyncio.run(run_mcp_query(ai_prod_desc ))
             st.success("Operation completed successfully!")
             st.success(answer)               
         

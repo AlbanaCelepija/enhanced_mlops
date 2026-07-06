@@ -18,7 +18,7 @@ platform_list = ["local", "dh"]
 
 def show_dashboard(current_product, current_framework):
     st.title(
-        "Dashboard: AI Product Operations by Requirements Dimension", anchor="dashboard"
+        "Dashboard: AI Product Operations by Requirements Dimensions", anchor="dashboard"
     )
     current_product = st.sidebar.selectbox("AI Products list", use_cases_list)
     current_framework = st.sidebar.selectbox(

@@ -15,19 +15,21 @@ from streamlit_ace import st_ace
 from streamlit_monaco import st_monaco
 from streamlit_option_menu import option_menu
 from streamlit_elements import mui, elements
-from library.src.artifact_types import Data, Configuration, Report
+from temlops.src.artifact_types import Data, Configuration, Report, Model
+
 
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
 pipeline_definitions_folder = os.path.join(
-    parent_folder, "framework/library/config/pipeline_definitions.yaml"
+    parent_folder, "framework/temlops/config/pipeline_definitions.yaml"
 )
-USE_CASES_FOLDER = os.path.join(parent_folder, "framework/library/use_cases")
+USE_CASES_FOLDER = os.path.join(parent_folder, "framework/temlops/use_cases")
 TOOLS_CATALOG_FOLDER = os.path.join(parent_folder, "tools_catalog")
 use_cases_list = os.listdir(USE_CASES_FOLDER)
 platform_list = ["local", "dh"]
 
+sys.path.append(USE_CASES_FOLDER)
 
 def import_from_path(module_name, file_path):
     """Import a module given its name and file path."""
@@ -370,12 +372,13 @@ def populate_frames(
                                 if len(report) == 0:
                                     continue
                                 report = report[0]                    
-                                report_path = report["filepath"]   
+                                report_path = report["config"]["filepath"]   
                                 report_path = os.path.join(
                                     USE_CASES_FOLDER,
                                     current_product,
                                     "src",
                                     f"{current_framework}_platform",
+                                    "artifacts", "report",
                                     report_path
                                 ) 
                                 if "html" in report_path:
@@ -507,6 +510,22 @@ def get_function_source(file_path, function_name):
             return "\n".join(lines[start_line:end_line])
     return None
 
+def _resolve_vars(specs_list, data_artifacts, config_artifacts, model_artifacts):
+    vars = {}
+    for item in specs_list:
+        artifact_name = list(item.values())[0]
+        key = list(item.keys())[0]
+        match = next((a for a in data_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Data(**{k: v for k, v in match.items() if k != "name"})
+        match = next((a for a in config_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Configuration(**{k: v for k, v in match.items() if k != "name"})
+        match = next((a for a in model_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Model(**{k: v for k, v in match.items() if k != "name"})
+    return vars
+
 def run_operation(
     operation,
     data_artifacts,
@@ -533,33 +552,11 @@ def run_operation(
 
     specs = operation["implementation"]["spec"]
     method_name = specs["method_name"]
-    inputs = specs["inputs"]
-    outputs = specs["outputs"]
-    input_vars = {}
-    for my_input in inputs:
-        print(my_input)
-        input_name = list(my_input.values())
-        input_artifact = [art for art in data_artifacts if art["name"] == input_name[0]]
-        input_key = list(my_input.keys())[0]  
-        if len(input_artifact) > 0:
-            artifact_vars = {
-                var_name: var_value
-                for var_name, var_value in input_artifact[0].items()
-                if var_name != "name"
-            }
-            input_vars.update({input_key: Data(**artifact_vars)})
-        input_artifact = [
-            art for art in config_artifacts if art["name"] == input_name[0]
-        ]
-        if len(input_artifact) > 0:
-            artifact_vars = {
-                var_name: var_value
-                for var_name, var_value in input_artifact[0].items()
-                if var_name != "name"
-            }
-            input_vars.update({input_key: Configuration(**artifact_vars)})
-    print(input_vars)
 
+    input_vars = _resolve_vars(specs["inputs"], data_artifacts, config_artifacts, model_artifacts)
+    input_vars.update(_resolve_vars(specs["outputs"], data_artifacts, config_artifacts, model_artifacts))
+    print(input_vars)
+            
     func = getattr(curr_module, method_name)
     if current_framework == "local":
         func(**input_vars)
@@ -625,6 +622,10 @@ def main():
     elif st.session_state.view == "Artifacts Visualisation":
         show_artifacts(current_step, selected_aspect, current_product, current_framework)
     else:
+        if "metadata" in os.listdir(os.path.join(USE_CASES_FOLDER, current_product)):
+            config_file = os.path.join(USE_CASES_FOLDER, current_product, "metadata", "aipc_local.yaml")  
+            yaml_path = Path(config_file)
+            yaml_text = yaml_path.read_text()
         st.code(yaml_text, language="yaml")
         
 
