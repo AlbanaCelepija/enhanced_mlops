@@ -1,0 +1,225 @@
+domain: PA
+data_modality: text
+ai_task: generative
+ai_product_name: Chatbot Assistant
+ai_product_description: This is a chatbot assistant for citizens 
+framework: google_platform
+operations:
+
+
+####################################################### Evaluate if AI product can be reused for new use case
+  - type: data_profiling  
+    stage: data_preparation
+    id: data_profiling
+    name: Generate EDA profiling report
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: ydata_profiling_operation
+        requirements: requirements.txt
+        inputs:
+          - data:  hiring_data
+          - config: constraints_file 
+        outputs:
+          - report: data_profiling_report
+
+
+####################################################### Data Preparation Stage
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: data_preprocessing_step1
+    name: Data preprocessing initial analysis 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: src/local_platform/data_preparation.py
+        method_name: load_data
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_original
+          - config: output_file  
+        outputs:
+          - data: hiring_data_processed 
+
+
+######################################################### Modelling Stage
+
+################### Model training
+  - type: model_training
+    stage: modelling
+    id: model_train
+    name: Model Simple Training
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - config: model_train
+        outputs:
+          - model: model_baseline
+
+  - type: model_training
+    stage: modelling
+    id: model_train_reweighing
+    name: Model Training fairness aware
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: bias_mitigation_in_process_train
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_reweighed
+          - config: model_train_fairness_aware
+          - report: model_acc_fairness_metric_report
+        outputs:
+          - model: model_fairness_aware
+
+################### Model evaluation
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_accuracy
+    name: Model Overall Performance Evaluation
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_accuracy
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_baseline
+          - config: model_train
+        outputs:
+          - report: model_metrics_report
+
+####################################################### Operationalization Stage
+
+  - type: model_deployment
+    stage: operationalization
+    id: model_deploy
+    name: Model Deployment using kserve
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: model_deploy
+        requirements: requirements.txt
+        inputs:
+          - model: model_fairness_unaware
+
+        outputs:
+          - config: model_inferenceservice_endpoint
+
+# TODO system monitoring (telemetry, prometheus, grafana)
+  - type: system_monitoring
+    stage: operationalization
+    id: system_monitor
+    name: System Monitoring using telemetry
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: model_monitor
+        requirements: requirements.txt
+        inputs:
+          - 
+        outputs:
+          - 
+
+# TODO production data monitoring (evidently, alibi-detect)
+  - type: production_data_monitoring
+    stage: operationalization
+    id: production_data_monitor
+    name: Production Data Monitoring using evidently
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: production_data_monitor
+        requirements: requirements.txt
+        inputs:
+          - 
+        outputs:
+          - 
+##################################################### Artifacts
+artifacts:
+  data:
+    - name: frequently_asked_questions
+      config:
+        filepath: 
+        resulting_filepath: data_processed.csv
+
+  model:
+    - name: model_baseline
+      version: latest
+      path: model_baseline
+    - name: model_optimized
+      version: 1
+      path: model_optimized
+
+  configuration:
+    - name: output_file
+      config:
+        resulting_filepath: data_processed.parquet
+    - name: model_train
+      config:
+        test_size: 0.3
+        random_state: 4
+        model_filepath: model_baseline.pickle
+        sensitive_features:
+          - nationality
+          - gender
+    - name: model_train_optimization
+      config:
+        test_size: 0.3
+        random_state: 4
+        threshold: 70
+    - name: model_inferenceservice_endpoint
+      endpoint: 
+  report:
+    - name: data_profiling_report
+      config:
+        filepath: data_drift.html    
+  status:
+    - name: model_validation_baseline
+      status_file: model_validation.json
+      status_key: model_validation_baseline
+    - name: model_validation_fairness
+      status_file: model_validation.json
+      status_key: model_validation_fairness
+  documentation:
+    - name: data_card_hiring
+      filepath: cards/data_card.md
+    - name: model_card_hiring
+      filepath: cards/model_card.md
+  function:
+    - name: model_deploy_function
+      function_name: model_deploy
+      desc: "Deploy the model using kserve InferenceService"
+      path: src/operationalization.py
+  service:
+    - name: model_deploy_service
+      port: 1234
+      namespace: kserve-test
+
+requirements_dimensions:
+  - baseline
+  - optimizaion
+  - robustness
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring

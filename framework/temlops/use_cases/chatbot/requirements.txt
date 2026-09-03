@@ -1,0 +1,10 @@
+presidio-analyzer
+presidio-anonymizer
+
+google-cloud-aiplatform>=1.60 #[prediction]>=1.60
+google-cloud-storage>=2.17
+transformers>=4.44
+datasets>=2.20
+peft>=0.12
+accelerate>=0.33
+torch
