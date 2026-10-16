@@ -35,6 +35,6 @@ torch
 
 ### Local temlops framework package (editable install of framework/, this repo)
 # -e ../framework
--e  git+https://github.com/aequitas-aod/aequitas-service.git@main#egg=temlops&subdirectory=framework
+-e  git+https://github.com/AlbanaCelepija/enhanced_mlops.git@main#egg=temlops&subdirectory=framework
 # temlops @ ../framework
 # git+https://github.com/aequitas-aod/aequitas-service.git@main#subdirectory=framework
