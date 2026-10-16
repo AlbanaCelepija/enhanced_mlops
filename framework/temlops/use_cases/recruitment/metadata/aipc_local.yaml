@@ -4,6 +4,229 @@ ai_task: classification
 ai_product_name: Hiring classifier
 ai_product_description: This is a sklearn model which aims to classify whether or not an individual should be hired.
 framework: local
+
+requirements:
+  - id: req_hr_high_risk_classification
+    name: High-risk classification for HR CV screening
+    description: >-
+      Determine whether the CV-screening system falls within the high-risk
+      employment category.
+    source:
+      framework: EU_AI_ACT
+      article: "Annex III, point 4(a)"
+    requirement_text: >-
+      AI systems intended to be used for the recruitment or selection of
+      natural persons, in particular to analyse and filter job applications
+      and to evaluate candidates, are high-risk AI systems.
+    summary: >-
+      The HR CV-screening system is classified as high-risk because it
+      analyses and filters job applications.
+    kind: RISK_MANAGEMENT
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_risk_management
+      - req_hr_data_governance
+      - req_hr_human_oversight
+
+  - id: req_hr_risk_management
+    name: Risk management for HR CV-screening system
+    description: >-
+      Identify, evaluate, mitigate, and monitor risks to candidates' rights,
+      opportunities, and fair access to employment.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 9"
+    requirement_text: >-
+      A risk management system shall be established, implemented, documented
+      and maintained for high-risk AI systems, including identification,
+      estimation, evaluation, mitigation, testing and monitoring of risks.
+    summary: >-
+      The system must maintain a lifecycle risk-management process covering
+      intended use and foreseeable misuse.
+    kind: RISK_MANAGEMENT
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_high_risk_classification
+
+  - id: req_hr_data_governance
+    name: Data governance for HR datasets
+    description: >-
+      Ensure appropriate governance of CV data, extracted features,
+      historical labels, job descriptions, audit attributes, and logs.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 10"
+    requirement_text: >-
+      Training, validation and testing datasets shall be subject to data
+      governance and management practices appropriate for the intended
+      purpose of the high-risk AI system.
+    summary: >-
+      The framework must assess data quality, relevance, representativeness,
+      bias, limitations, and data preparation practices for HR datasets.
+    kind: DATA_GOVERNANCE
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_risk_management
+
+  - id: req_diversity_eda
+    name: Diversity Exploratory Analysis
+    description: Data distribution and representativeness
+    source:
+      framework: EU_AI_ACT
+      article: "Article 10(5)"
+    requirement_text: >-
+      Analyze the dataset for imbalances or patterns that may suggest bias,
+      such as over-representation or under-representation of certain groups.
+    summary: >-
+      Evaluate the dataset's demographic diversity, ensuring it represents
+      all relevant populations appropriately.
+    kind: DATA_GOVERNANCE
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_risk_management
+
+  - id: req_hr_technical_documentation
+    name: Technical documentation for HR AI system
+    description: >-
+      Produce and maintain documentation describing the system, its intended
+      purpose, data, model, validation, limitations, monitoring, and
+      compliance evidence.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 11"
+    requirement_text: >-
+      Technical documentation of a high-risk AI system shall be drawn up
+      before that system is placed on the market or put into service and
+      shall be kept up to date.
+    summary: >-
+      The HR system must maintain technical documentation, including system
+      cards, model cards, data cards, validation reports, and monitoring
+      evidence.
+    kind: DOCUMENTATION
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      # req_hr_record_keeping is cited here (and by the ComplianceContext) in
+      # the source use-case document but never itself given a definition
+      # there -- kept as-is rather than inventing content for it.
+      - req_hr_record_keeping
+      - req_hr_transparency_to_deployer
+
+  - id: req_hr_transparency_to_deployer
+    name: Transparency and instructions for HR deployers
+    description: >-
+      Ensure deployers and HR users receive information on intended purpose,
+      limitations, performance, oversight, and correct use.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 13"
+    requirement_text: >-
+      High-risk AI systems shall be designed and developed in such a way as
+      to ensure that their operation is sufficiently transparent to enable
+      deployers to interpret the system's output and use it appropriately.
+    summary: >-
+      Recruiters and HR operators must receive instructions explaining how
+      to use the system, how to interpret outputs, and what its limitations
+      are.
+    kind: TRANSPARENCY
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_human_oversight
+      - req_hr_worker_candidate_information
+
+  - id: req_hr_human_oversight
+    name: Human oversight for HR screening
+    description: >-
+      Ensure that HR users can understand, supervise, challenge, override,
+      or disregard model recommendations.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 14"
+    requirement_text: >-
+      High-risk AI systems shall be designed and developed in such a way
+      that they can be effectively overseen by natural persons during the
+      period in which they are in use.
+    summary: >-
+      The system must support meaningful human oversight and must not make
+      final rejection decisions without appropriate human review.
+    kind: HUMAN_OVERSIGHT
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_transparency_to_deployer
+
+  - id: req_hr_worker_candidate_information
+    name: Information to affected persons in HR context
+    description: >-
+      Inform workers, representatives, or candidates where required that a
+      high-risk AI system is used in the recruitment process.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 26"
+    requirement_text: >-
+      Before putting into service or using a high-risk AI system at the
+      workplace, deployers who are employers shall inform workers'
+      representatives and affected workers that they will be subject to the
+      use of the high-risk AI system; deployers of high-risk AI systems
+      listed in Annex III that make or facilitate decisions concerning
+      natural persons shall inform those persons that they are subject to
+      its use.
+    summary: >-
+      Candidates and, where relevant, workers or worker representatives must
+      be informed that the HR process uses a high-risk AI system.
+    kind: TRANSPARENCY
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_transparency_to_deployer
+
+  - id: req_hr_accuracy_robustness
+    name: Accuracy and robustness for HR screening
+    description: >-
+      Validate predictive performance, robustness to CV variation and
+      deployment drift.
+    source:
+      framework: EU_AI_ACT
+      article: "Article 15"
+    requirement_text: >-
+      High-risk AI systems shall be designed and developed in such a way
+      that they achieve an appropriate level of accuracy and robustness, and
+      perform consistently throughout their lifecycle.
+    summary: >-
+      The HR model must be tested for accuracy, robustness, calibration, and
+      degradation under shift.
+    kind: TESTING
+    context: cc_hr_cv_screening
+    applicability_status: APPLICABLE
+    related_requirements:
+      - req_hr_risk_management
+
+
+compliance_objectives:
+  - id: objective_data_quality_check
+    name: Data quality check
+    description: >-
+      A data-quality profiling report must be produced for the training
+      data, flagging missing values, duplicates, and distributional issues
+      before the data is used for model training.
+    metric: metric_data_quality_pass_rate
+    condition:
+      kind: threshold
+      operator: GEQ
+      value: 0.95
+    priority: MANDATORY
+    severity: HIGH
+    scope:
+      applies_to: [data_training]
+    requirements:
+      - req_hr_data_governance
+
+
 operations:
 
 
@@ -26,6 +249,23 @@ operations:
         outputs:
           - data_processed: data_processed 
 
+#  - type: data_profiling  
+#    stage: data_preparation
+#    id: data_profiling
+#    name: Generate EDA profiling report
+#    requirement_dimension: baseline
+#    implementation: 
+#      framework: local
+#      spec:
+#        path: data_preparation.py
+#        method_name: data_drift_detection
+#        requirements: requirements.txt
+#        inputs:
+#          - data:  hiring_data_original
+#          - config: constraints_file 
+#        outputs:
+#          - report: data_profiling_report
+          
   - type: data_preprocessing  
     stage: data_preparation
     id: split_train_valid_test_data
@@ -45,12 +285,13 @@ operations:
           - data_test: data_testing 
           - data_valid: data_validation 
 
-  - type: data_profiling  
+  - type: data_profiling
     stage: data_preparation
     id: data_profiling_custom
-    name: Data profiling custom analysis 
+    name: Data profiling custom analysis
     requirement_dimension: baseline
-    implementation: 
+    objective: objective_data_quality_check
+    implementation:
       framework: local
       spec:
         path: src/local_platform/data_preparation.py
@@ -58,9 +299,9 @@ operations:
         requirements: requirements.txt
         inputs:
           - data_train: data_training
-          - configuration: profiling_actions  
+          - config: profiling_actions  
         outputs:
-          - data_profiling_custom_report: data_profiling_custom_report 
+          - report: data_profiling_custom_report 
 
 
 ######################################################### Modelling Stage
@@ -133,7 +374,26 @@ operations:
           - config: model_train_fair
         outputs:
           - model: model_fairness_learning_fair_representations
-################### Model evaluation 
+
+################### Model training (in-processing)
+  - type: model_training
+    stage: modelling
+    id: train_model_fauci
+    name: Model Training in-processing with FaUCI for Fairness
+    requirement_dimension: fairness
+    implementation:
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model_fauci
+        requirements: requirements.txt
+        inputs:
+          - data: data_training
+          - config: model_train_fauci
+        outputs:
+          - model: model_fairness_fauci
+
+################### Model evaluation
 
   - type: model_evaluation
     stage: modelling
@@ -244,6 +504,22 @@ operations:
         outputs:
           - report: model_fairness_metrics_report
 
+  - type: model_evaluation
+    stage: modelling
+    id: check_all_fairness_metrics
+    name: Model Fairness Metrics Evaluation Summary
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: check_all_fairness_metrics
+        requirements: requirements.txt
+        inputs:
+          - report: model_fairness_metrics_report
+        outputs:
+          - report2: model_fairness_metrics_report
+
 
 ####################### Model Validation
 
@@ -284,11 +560,11 @@ operations:
 
 ####################################################### Operationalization Stage
 
-# model deployment (kserve)
+# model deployment
   - type: model_deployment
     stage: operationalization
     id: model_deploy
-    name: Model Deployment using kserve
+    name: Model Deployment using mlserver
     requirement_dimension: baseline
     implementation: 
       framework: local
@@ -298,9 +574,42 @@ operations:
         requirements: requirements.txt
         inputs:
           - model: model_fairness_unaware
-
         outputs:
           - configuration: model_inferenceservice_endpoint
+
+  - type: model_monitoring
+    stage: operationalization
+    id: model_monitoring_nannyml
+    name: Model Monitoring using NannyML
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: model_monitoring_nannyml
+        requirements: requirements.txt
+        inputs:
+          - model: model_fairness_unaware
+        outputs:
+          - configuration: model_inferenceservice_endpoint
+
+  - type: post_inference_transformations
+    stage: operationalization
+    id: post_processing_fairness_validation
+    name: Bias mtigation post processing using Equalized Odds
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: post_processing_fairness_validation
+        requirements: requirements.txt
+        inputs:
+          - data_test: data_testing
+          - config: model_fairness_unaware
+          - model: model_fairness_unaware
+        outputs:
+          - report: post_processing_fairness_validation_report
 
 
 ##################################################### Artifacts
@@ -334,6 +643,9 @@ artifacts:
     - name: model_fairness_learning_fair_representations
       config:
         filepath: model_fairness_learning_fair_representations.pickle
+    - name: model_fairness_fauci
+      config:
+        filepath: model_fairness_fauci.pickle
   configuration:
     - name: splitting_config
       config:
@@ -342,15 +654,26 @@ artifacts:
     - name: model_train_baseline
       config:
         random_state: 4
-        target_column: income
+        target_column: Status
         max_iter: 1000
     - name: model_train_fair
       config:
-        target_column: income
+        target_column: Status
         sensitive: sex
+    - name: model_train_fauci
+      config:
+        target_column: Status
+        sensitive: sex
+        random_state: 42
+        hidden_dim: 8
+        hidden_layers: 1
+        epochs: 100
+        batch_size: 32
+        regularization_weight: 0.5
+        fairness_regularization: spd
     - name: model_evaluation_fairness_metrics     # values considered fair for each metric
       config: 
-        target: income
+        target: Status
         sensitive: sex
         positive_target: 1
         favored_class: 0
@@ -371,15 +694,18 @@ artifacts:
         min_training_data: 1000
     - name: profiling_actions
       config:
-        dataset_name: recruitmentdataset-2022
-        actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
+        dataset_name: recruitment
+        actions: dtypes, missing_values, unique_values, correlations, histograms, outliers, summary
   report:
     - name: data_profiling_report
       config:
-        filepath: data_drift.html    
+        filepath: data_drift.html   
+    - name: data_profiling_custom_report
+      config:
+        filepath: recruitment_correlation.png 
     - name: model_performance_metrics_report
       config:
-        filepath: model_performance_metrics_report.csv
+        filepath: preprocessing_di_comparison.png
     - name: model_fairness_metrics_report
       config:
         filepath: model_fairness_metrics_report.csv
