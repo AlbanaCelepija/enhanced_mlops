@@ -67,4 +67,16 @@ A curated catalog of open-source tools for AI requirements:
 	year={2025},
 	url = {https://ceur-ws.org/Vol-4109/paper7.pdf}
 }
+@article{CELEPIJA2027108813,
+  title = {From what to how and when: Implementing an enhanced MLOps framework for a structured AI development lifecycle},
+  journal = {Future Generation Computer Systems},
+  volume = {187},
+  pages = {108813},
+  year = {2027},
+  issn = {0167-739X},
+  doi = {https://doi.org/10.1016/j.future.2026.108813},
+  url = {https://www.sciencedirect.com/science/article/pii/S0167739X26004474},
+  author = {Albana Celepija and Giulia Deppieri and Nadia Mana and Raman Kazhamiakin and Bruno Lepri},
+  keywords = {Reusable AI product, Operationalize AI, Enhanced MLOps, Public administration},
+}
 ```
