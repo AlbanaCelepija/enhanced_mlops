@@ -509,6 +509,8 @@ def main():
 
     use_cases_list_names = []
     for product in use_cases_list:
+        if product != "recruitment":
+            continue
         if "metadata" in os.listdir(os.path.join(USE_CASES_FOLDER, product)):
             config_file = os.path.join(
                 USE_CASES_FOLDER, product, "metadata", "aipc_local.yaml"
