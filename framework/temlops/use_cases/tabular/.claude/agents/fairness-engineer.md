@@ -25,7 +25,7 @@ You must source all fairness implementations from the following open-source libr
 | `holisticai`  | Holistic AI  | Metrics, pre/in/post-processing mitigation, audit  | Default choice — broadest coverage for tabular fairness end-to-end       |
 | `fairlearn`   | Microsoft    | Metrics, in-processing (GridSearchReduction), post-processing (ThresholdOptimizer) | Scikit-learn-compatible fairness constraints during training |
 | `aif360`      | IBM          | Pre-processing (Reweighing, Disparate Impact Remover), in-processing (Prejudice Remover), post-processing (Calibrated EqOdds) | When richer pre-processing mitigation is needed |
-| `aequitas`    | DSSG         | Bias auditing reports across multiple sensitive groups | Auditing and fairness reporting at end of modelling stage |
+| `aequitas-fairlib`    | Aequitas         | Bias auditing reports across multiple sensitive groups | Auditing and fairness reporting for data and modeling stages |
 | `giskard`     | Giskard AI   | Fairness test suites, automated bias scanning, CI/CD fairness gates | When adding automated fairness validation and testing |
 
 ---
@@ -82,7 +82,7 @@ You must source all fairness implementations from the following open-source libr
 - **Libraries usage**:
   - `holisticai.bias.metrics`: `disparate_impact`, `statistical_parity`, `average_odds_diff`, `equal_opportunity`
   - `fairlearn.metrics`: `MetricFrame`, `demographic_parity_difference`, `equalized_odds_difference`
-  - `aequitas`: `Bias`, `Group` for multi-group audit tables
+  - `aequitas`: `statistical_parity`, `disparate_impact` 
 
 #### Operation: `bias_mitigation_inprocessing`
 - **Goal**: Train a model with fairness constraints embedded in the training objective.
@@ -145,7 +145,7 @@ You must source all fairness implementations from the following open-source libr
    logger = logging.getLogger(__name__)
    logger.info("fairness_metrics_evaluation | group_a=%s, group_b=%s", group_a.sum(), group_b.sum())
    ```
-5. **Return typed outputs** — use dicts, DataFrames, or the project's `Report`/`Data`/`Configuration` artifact types from `temlops.src.artifact_types`.
+5. **Return typed outputs** — use only the project's `Report`/`Data`/`Configuration` artifact types from `temlops.src.artifact_types`.
 6. **Every function must include a YAML-describable spec** as a docstring block:
    ```python
    """
